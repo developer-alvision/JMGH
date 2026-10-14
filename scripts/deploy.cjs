@@ -36,7 +36,7 @@ if (process.argv.includes('--all-local-functions')) {
 }
 let result;
 try {
-  result = spawnSync(process.execPath, ['node_modules/firebase-tools/lib/bin/firebase.js', 'deploy', '--project', projectId, '--only', only, '--non-interactive'], { stdio: 'inherit', env: { ...process.env, FUNCTIONS_DISCOVERY_TIMEOUT: '60' } });
+  result = spawnSync(process.execPath, ['node_modules/firebase-tools/lib/bin/firebase.js', 'deploy', '--project', projectId, '--only', only, '--force', '--non-interactive'], { stdio: 'inherit', env: { ...process.env, FUNCTIONS_DISCOVERY_TIMEOUT: '60' } });
 } finally {
   if (process.argv.includes('--all-local-functions')) fs.writeFileSync('functions/package.json', originalManifest);
 }
