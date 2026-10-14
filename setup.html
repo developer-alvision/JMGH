@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Setup Cockpit — Jyothsna Maternity Hospital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+    <style>
+        :root {
+            --primary-navy: #0F2B5B;
+            --primary-teal: #0D7A70;
+            --primary-teal-hover: #0a5f57;
+            --error-red: #EF4444;
+            --success-green: #10B981;
+            --warning-amber: #F59E0B;
+            --white: #FFFFFF;
+            --bg-color: #F8FAFC;
+            --border-color: #E2E8F0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: #334155;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(15, 43, 91, 0.04);
+            padding: 40px;
+            max-width: 850px;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .header i {
+            font-size: 3.5rem;
+            color: var(--primary-teal);
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: var(--primary-navy);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+        }
+        .description {
+            color: #64748B;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .action-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            background-color: #F8FAFC;
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary-navy);
+            margin-top: 0;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .btn-teal {
+            background-color: var(--primary-teal);
+            color: var(--white);
+        }
+        .btn-teal:hover {
+            background-color: var(--primary-teal-hover);
+        }
+        .btn-outline {
+            background-color: var(--white);
+            color: #475569;
+            border: 1px solid var(--border-color);
+        }
+        .btn-outline:hover {
+            background-color: #F1F5F9;
+            color: var(--primary-navy);
+        }
+        .btn-danger {
+            background-color: var(--white);
+            color: var(--error-red);
+            border: 1px solid #FECACA;
+        }
+        .btn-danger:hover {
+            background-color: #FEF2F2;
+        }
+        .btn-full {
+            grid-column: 1 / -1;
+            font-size: 1rem;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--primary-navy), #1E3A8A);
+            color: var(--white);
+            box-shadow: 0 4px 10px rgba(15, 43, 91, 0.15);
+        }
+        .btn-full:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .console-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--primary-navy);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .console-window {
+            background-color: #0F172A;
+            color: #E2E8F0;
+            border: 1px solid #1E293B;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+            text-align: left;
+        }
+        .console-line {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .console-line:last-child {
+            margin-bottom: 0;
+        }
+        .log-time {
+            color: #64748B;
+            font-size: 0.75rem;
+            user-select: none;
+            margin-right: 4px;
+        }
+        .log-success {
+            color: var(--success-green);
+        }
+        .log-error {
+            color: var(--error-red);
+        }
+        .log-info {
+            color: #38BDF8;
+        }
+        .log-warn {
+            color: var(--warning-amber);
+        }
+        
+        /* Summary Widgets */
+        .summary-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            background-color: #F8FAFC;
+            margin-top: 30px;
+            display: none;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .summary-item {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .summary-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-teal);
+        }
+        .summary-lbl {
+            font-size: 11px;
+            color: #64748B;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* Credentials Section */
+        .credentials-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            background-color: var(--white);
+            margin-top: 30px;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+        .cred-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+        .cred-table th {
+            background-color: #F1F5F9;
+            color: var(--primary-navy);
+            text-align: left;
+            padding: 10px 14px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .cred-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
+        }
+        .cred-table tr:hover {
+            background-color: #F8FAFC;
+        }
+        .btn-dashboard {
+            display: block;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            background-color: var(--primary-teal);
+            color: var(--white);
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 24px;
+            box-shadow: 0 4px 12px rgba(13, 122, 112, 0.15);
+            transition: background-color 0.2s;
+        }
+        .btn-dashboard:hover {
+            background-color: var(--primary-teal-hover);
+        }
+    </style>
+</head>
+<body>
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var setupPassword = params.get('confirm') || prompt('This tool writes directly to the database. Type CONFIRM to continue:');
+        if (setupPassword !== 'CONFIRM') {
+            document.body.innerHTML = '<h2 style="text-align:center;margin-top:100px;color:red;font-family:sans-serif;">Access Denied. This page is for internal use only.</h2>';
+        }
+    </script>
+    <!-- FIX 6: Internal-use-only warning banner -->
+    <div style="background:#DC2626;color:white;text-align:center;padding:10px 20px;font-size:13px;font-weight:600;letter-spacing:0.3px;position:sticky;top:0;z-index:9999;">
+        &#9888; INTERNAL USE ONLY &mdash; Not for client access
+    </div>
+    <div class="container">
+        <div class="header">
+            <i class="fa-solid fa-server"></i>
+            <h1>Database Setup Cockpit</h1>
+            <div class="description">
+                JMGH HMS Seeding & Database Control Center. Use the options below to populate or clear firestore collections with sample data to run comprehensive integrations and manual testing.
+            </div>
+        </div>
+
+        <div class="action-card">
+            <div class="section-title"><i class="fa-solid fa-gears"></i> Seeding & Control Operations</div>
+            <div class="btn-grid">
+                <button class="btn btn-full" id="btnSetupAll" onclick="setupAll()">
+                    <i class="fa-solid fa-bolt"></i> Setup All Data (Recommended)
+                </button>
+                <button class="btn btn-teal" id="btnRichDemo" onclick="seedFullDemo()" style="grid-column: 1 / -1; background:#0D7A70;">
+                    <i class="fa-solid fa-notes-medical"></i> Rich Clinical Demo — 10 patients, 3 months of history, every section filled
+                </button>
+                <button class="btn btn-teal" id="btnFreshDemo" onclick="resetFreshDemo()" style="grid-column: 1 / -1; background:#A61E4D;">
+                    <i class="fa-solid fa-rotate"></i> Clear &amp; Fresh Demo (500 old patients + 500 medicines; rest minimal)
+                </button>
+                <button class="btn btn-outline" id="btnSetupDoctors" onclick="runSeeder(setupDoctors, 'Doctors')">
+                    <i class="fa-solid fa-user-doctor"></i> Setup Doctors Only
+                </button>
+                <button class="btn btn-outline" id="btnSetupPatients" onclick="runSeeder(setupPatients, 'Patients')">
+                    <i class="fa-solid fa-hospital-user"></i> Setup Patients Only
+                </button>
+                <button class="btn btn-outline" id="btnSetupMedicines" onclick="runSeeder(setupMedicines, 'Medicines')">
+                    <i class="fa-solid fa-pills"></i> Setup Medicines Only
+                </button>
+                <button class="btn btn-outline" id="btnSetupBeds" onclick="runSeeder(setupBeds, 'Beds')">
+                    <i class="fa-solid fa-bed"></i> Setup Beds Only
+                </button>
+                <button class="btn btn-outline" id="btnSetupBills" onclick="runSeeder(setupSampleBills, 'Bills, Admissions & Dispensing')">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Setup Sample Bills
+                </button>
+                <button class="btn btn-outline" id="btnSetupAppointments" onclick="runSeeder(setupAppointments, 'Appointments')">
+                    <i class="fa-solid fa-calendar-check"></i> Setup Appointments
+                </button>
+                <button class="btn btn-outline" id="btnSetupConsultations" onclick="runSeeder(setupConsultations, 'Consultations')">
+                    <i class="fa-solid fa-notes-medical"></i> Setup Consultations
+                </button>
+                <button class="btn btn-outline" id="btnSetupPrescriptions" onclick="runSeeder(setupPrescriptions, 'Prescriptions')">
+                    <i class="fa-solid fa-receipt"></i> Setup Prescriptions
+                </button>
+                <button class="btn btn-outline" id="btnSetupLabQueue" onclick="runSeeder(setupLabQueueFromConsultations, 'Lab Queue from Consultations')">
+                    <i class="fa-solid fa-flask"></i> Setup Lab Queue from Consultations
+                </button>
+                <button class="btn btn-teal" id="btnCreateAuth" onclick="createStaffAuthAccounts()" style="grid-column: 1 / -1; margin-top: 5px; background-color: #1E3A8A;">
+                    <i class="fa-solid fa-users-gear"></i> Create Staff Login Accounts
+                </button>
+                <button class="btn btn-teal" id="btnMigrateIPD" onclick="migrateIPDBillsToRunning()" style="grid-column: 1 / -1; margin-top: 5px; background-color: #7C3AED;">
+                    <i class="fa-solid fa-arrows-spin"></i> Migrate IPD Bills to Running
+                </button>
+                <button class="btn btn-danger" id="btnClearAll" onclick="clearAllData()" style="grid-column: 1 / -1; margin-top: 5px;">
+                    <i class="fa-solid fa-trash-can"></i> Clear All Setup Data
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <div class="console-header">
+                <div class="console-title"><i class="fa-solid fa-terminal"></i> Execution Console Output</div>
+                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 0.75rem;" onclick="clearConsole()">
+                    <i class="fa-solid fa-eraser"></i> Clear Logs
+                </button>
+            </div>
+            <div class="console-window" id="console">
+                <div class="console-line"><span class="log-time">[13:13:42]</span><span class="log-info"><i class="fa-solid fa-circle-info"></i> System ready. Click Setup All Data to seed complete sample data.</span></div>
+            </div>
+        </div>
+
+        <!-- Seeding Summary Card -->
+        <div class="summary-card" id="summaryCard">
+            <div class="section-title"><i class="fa-solid fa-chart-pie"></i> Database Seeding Summary</div>
+            <div class="summary-grid">
+                <div class="summary-item"><div class="summary-val" id="sumPatients">15</div><div class="summary-lbl">Patients</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumStaff">9</div><div class="summary-lbl">Staff (Firestore)</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumMeds">12</div><div class="summary-lbl">Medicines</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumBeds">22</div><div class="summary-lbl">Beds Created</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumBills">12</div><div class="summary-lbl">Bills Generated</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumAdmissions">4</div><div class="summary-lbl">Admissions</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumLabQueue">7</div><div class="summary-lbl">Lab Requests</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumImgQueue">1</div><div class="summary-lbl">Imaging Requests</div></div>
+                <div class="summary-item"><div class="summary-val" id="sumDisp">3</div><div class="summary-lbl">Dispensing Docs</div></div>
+            </div>
+        </div>
+
+        <!-- Credentials Card -->
+        <div class="credentials-card" id="credentialsCard">
+            <div class="section-title"><i class="fa-solid fa-shield-lock"></i> Seeded Staff Logins & Credentials</div>
+            <p style="font-size:0.85rem; margin-top: 0; color:#64748B;">
+                Sample staff accounts are created with a one-off password that you type when you run
+                <strong>Create Staff Login Accounts</strong>. No password is stored in this project.
+                Give each person their account, and have them change the password at first sign-in
+                from <strong>Staff &rarr; Settings</strong>.
+            </p>
+            <div style="border-left:3px solid #F59E0B; background:rgba(245,158,11,0.08); padding:12px 14px; border-radius:0 6px 6px 0; font-size:0.85rem; color:#475569;">
+                <strong style="color:#0F2B5B;">Before go-live:</strong> delete every sample account in
+                <em>Firebase Console &rarr; Authentication &rarr; Users</em> and create real staff from
+                <em>Staff &rarr; Add New Staff</em>.
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <a href="dashboard.html" class="btn-dashboard" style="flex: 1; margin-top: 0; background-color: #0F2B5B; box-shadow: 0 4px 12px rgba(15, 43, 91, 0.15);">
+                    <i class="fa-solid fa-chart-pie"></i> Go to Dashboard
+                </a>
+                <a href="owner-dashboard.html" class="btn-dashboard" style="flex: 1; margin-top: 0; background-color: #0D7A70;">
+                    <i class="fa-solid fa-chart-line"></i> Owner Analytics
+                </a>
+            </div>
+            <a href="index.html" style="display: block; text-align: center; margin-top: 15px; color: #64748B; font-size: 0.85rem; text-decoration: none; font-weight: 500;">
+                <i class="fa-solid fa-right-to-bracket"></i> Go to Login Screen
+            </a>
+        </div>
+    </div>
+
+    <!-- Firebase Compat SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="js/setup.js?v=20261013b"></script>
+    <script src="js/setup-demo.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

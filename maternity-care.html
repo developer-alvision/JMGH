@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maternity Care — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header"><i class="fa-solid fa-hospital-user"></i> Jyothsna</div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+    </aside>
+    <main class="main-wrapper">
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;"><i class="fa-solid fa-bars"></i></button>
+            <div class="nav-title"><h2 data-i18n="Maternity Care">Maternity Care</h2></div>
+            <div class="nav-user">
+                <span class="user-info" id="userEmail">Loading...</span>
+                <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </header>
+        <div class="page-content">
+            <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                <div>
+                    <h1 class="page-title" data-i18n="Maternity Care">Maternity Care</h1>
+                    <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">ANC board, vaccines, birth registration and labour links.</p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <a class="btn-secondary" href="partograph.html"><i class="fa-solid fa-chart-line"></i> Partograph</a>
+                    <a class="btn-secondary" href="discharge.html"><i class="fa-solid fa-file-medical"></i> Discharge</a>
+                </div>
+            </div>
+
+            <div class="toolbar" style="margin-bottom:16px;">
+                <button class="filter-btn active" data-mc-tab="anc">ANC Board</button>
+                <button class="filter-btn" data-mc-tab="vaccines">Newborn Vaccines</button>
+                <button class="filter-btn" data-mc-tab="birthreg">Birth Registration</button>
+            </div>
+
+            <section id="mcTab-anc">
+                <div class="stat-cards" style="margin-bottom:16px;">
+                    <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-person-pregnant"></i></div><div class="stat-details"><h3>Pregnant</h3><div class="value" id="mcPregnantCount">—</div></div></div>
+                    <div class="stat-card is-warning"><div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="stat-details"><h3>Visits due</h3><div class="value" id="mcDueCount">—</div></div></div>
+                    <div class="stat-card is-info"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-details"><h3>EDD this month</h3><div class="value" id="mcEddCount">—</div></div></div>
+                    <div class="stat-card is-due"><div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-details"><h3>High risk</h3><div class="value" id="mcHighRiskCount">—</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <h3 class="card-title">Antenatal patients</h3>
+                        <input type="search" id="mcAncSearch" placeholder="Search name / ID / phone" style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:6px;min-width:220px;">
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Patient</th><th>LMP / EDD</th><th>GA</th><th>Next visit</th><th>Risk</th><th></th></tr></thead>
+                            <tbody id="mcAncBody"><tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="mcTab-vaccines" style="display:none;">
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <h3 class="card-title">Newborn vaccine register</h3>
+                        <button class="btn-primary" type="button" id="mcAddVaccineBtn"><i class="fa-solid fa-plus"></i> Record dose</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Date</th><th>Baby</th><th>Mother</th><th>Vaccine</th><th>Batch</th><th>Given by</th><th>Next due</th></tr></thead>
+                            <tbody id="mcVaccineBody"><tr><td colspan="7" style="text-align:center;color:#888;padding:20px;">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="mcTab-birthreg" style="display:none;">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Statutory birth registration helper</h3></div>
+                    <p style="padding:0 20px 12px;color:var(--text-muted);font-size:13px;">Hospital certificates are not the legal birth certificate. Use this checklist to prepare municipal / CRS filing. Export CSV for the registrar.</p>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Delivery</th><th>Mother</th><th>Baby</th><th>Sex</th><th>Weight</th><th>Checklist</th><th>Status</th><th></th></tr></thead>
+                            <tbody id="mcBirthBody"><tr><td colspan="8" style="text-align:center;color:#888;padding:20px;">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div style="padding:12px 20px;"><button class="btn-secondary" type="button" id="mcExportBirthCsv"><i class="fa-solid fa-file-csv"></i> Export for registrar</button></div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div id="mcVaccineModal" class="modal">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header"><h3>Record vaccine dose</h3><button class="close-btn" type="button" onclick="closeMcVaccineModal()"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="mcVaccineForm" class="modal-body">
+            <div class="form-grid">
+                <div class="form-group" style="position:relative;">
+                    <label>Search mother (name / phone / ID)</label>
+                    <input id="mcVacMotherSearch" placeholder="Type to search…" autocomplete="off" style="width:100%;">
+                    <div id="mcVacMotherSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:220px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+                </div>
+                <div class="form-group"><label>Baby ID / name</label><input id="mcVacBabyId" placeholder="Baby patient or name (newborn doses only)"></div>
+                <div class="form-group"><label>Mother patient ID</label><input id="mcVacMotherId" required></div>
+                <div class="form-group"><label>Recipient</label>
+                    <select id="mcVacRecipient">
+                        <option value="baby">Newborn</option>
+                        <option value="mother">Mother (antenatal)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Vaccine</label>
+                    <select id="mcVacName" required>
+                        <optgroup label="Newborn">
+                            <option>BCG</option><option>Hepatitis B (birth)</option><option>OPV-0</option>
+                            <option>Hepatitis B-1</option><option>OPV-1</option><option>Pentavalent-1</option>
+                            <option>Rotavirus-1</option>
+                        </optgroup>
+                        <optgroup label="Mother (antenatal)">
+                            <option>TT-1</option><option>TT-2</option><option>TT Booster</option>
+                            <option>Tdap</option><option>Influenza</option>
+                        </optgroup>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Given on</label><input type="date" id="mcVacDate" required></div>
+                <div class="form-group"><label>Batch</label><input id="mcVacBatch"></div>
+                <div class="form-group"><label>Next due</label><input type="date" id="mcVacNext"></div>
+                <div class="form-group full-width"><label>Notes</label><textarea id="mcVacNotes"></textarea></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeMcVaccineModal()">Cancel</button><button class="btn-primary" type="submit">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/branch.js?v=20261013b"></script>
+<script src="js/i18n.js?v=20261013b"></script>
+<script src="js/maternity-care.js?v=20261013b"></script>
+</body>
+</html>

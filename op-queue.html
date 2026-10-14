@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OP Queue &amp; Vitals Triage — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar"><div class="sidebar-header">Jyothsna</div><nav class="sidebar-nav" id="sidebarNav"></nav></aside>
+    <main class="main-wrapper">
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;"><i class="fa-solid fa-bars"></i></button>
+            <div class="nav-title"><h2 data-i18n="OP Queue">OP Queue &amp; Triage</h2></div>
+            <div class="nav-user"><span class="user-info" id="userEmail">Loading...</span><button id="logoutBtn" class="btn-logout">Logout</button></div>
+        </header>
+        <div class="page-content">
+            <!-- Toolbar -->
+            <div class="toolbar" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <label style="font-size:12px;font-weight:700;color:var(--text-muted);">DOCTOR:</label>
+                        <select id="qDoctor" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border-strong);"></select>
+                    </div>
+                    <button class="btn-primary" type="button" id="qWalkInBtn" style="background:#0D7A70;"><i class="fa-solid fa-person-walking"></i> + Walk-in Patient (Triage)</button>
+                    <button class="btn-secondary" type="button" id="qNextBtn"><i class="fa-solid fa-bell"></i> Call Next</button>
+                </div>
+                <a class="btn-secondary" href="queue-display.html" target="_blank"><i class="fa-solid fa-tv"></i> Open TV Display</a>
+            </div>
+
+            <!-- Operational Metrics -->
+            <div class="stat-cards" style="margin-bottom:20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                    <div class="stat-details">
+                        <h3 style="color:#d97706;"><i class="fa-solid fa-heart-pulse"></i> Waiting for Vitals</h3>
+                        <div class="value" id="qVitalsPending">0</div>
+                    </div>
+                </div>
+                <div class="stat-card is-info" style="border-left: 4px solid #0D7A70;">
+                    <div class="stat-details">
+                        <h3 style="color:#0D7A70;"><i class="fa-solid fa-user-doctor"></i> Ready for Doctor</h3>
+                        <div class="value" id="qWaiting">0</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #7c3aed;">
+                    <div class="stat-details">
+                        <h3 style="color:#7c3aed;"><i class="fa-solid fa-stethoscope"></i> Now Serving</h3>
+                        <div class="value" id="qNow" style="font-size:18px;">—</div>
+                    </div>
+                </div>
+                <div class="stat-card is-money" style="border-left: 4px solid #16a34a;">
+                    <div class="stat-details">
+                        <h3 style="color:#16a34a;"><i class="fa-solid fa-circle-check"></i> Completed Today</h3>
+                        <div class="value" id="qDone">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAGE 1: VITALS PENDING QUEUE -->
+            <div class="card" style="margin-bottom:24px; border: 1px solid #fef3c7;">
+                <div class="card-header" style="background:#fffbeb; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h3 class="card-title" style="color:#92400e; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-temperature-half" style="color:#d97706;"></i> Stage 1: Vitals Triage (Waiting for Vitals)
+                        </h3>
+                        <p style="font-size:12px; color:#b45309; margin:2px 0 0;">Measure patient vitals (BP, Pulse, Temp) before sending them to the Doctor's Queue.</p>
+                    </div>
+                    <span id="vitalsPendingBadge" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700;">0 Patients</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Token / Time</th>
+                                <th>Patient Name</th>
+                                <th>Patient ID / Reg</th>
+                                <th>Consulting Doctor</th>
+                                <th>OP Fee / Pay</th>
+                                <th>Chief Complaint</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vitalsQueueBody">
+                            <tr><td colspan="7" style="text-align:center;padding:24px;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Loading triage queue…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- STAGE 2: DOCTOR QUEUE (READY FOR CONSULTATION) -->
+            <div class="card" style="border: 1px solid #e0f2fe;">
+                <div class="card-header" style="background:#f0f9ff; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h3 class="card-title" style="color:#0369a1; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-user-doctor" style="color:#0284c7;"></i> Stage 2: Doctor Queue (Vitals Taken &amp; Ready)
+                        </h3>
+                        <p style="font-size:12px; color:#0284c7; margin:2px 0 0;">Patients ready for doctor examination with pre-filled vitals in the consultation note.</p>
+                    </div>
+                    <span id="readyQueueBadge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700;">0 In Queue</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Token</th>
+                                <th>Patient Name</th>
+                                <th>Doctor</th>
+                                <th>Recorded Vitals</th>
+                                <th>Status</th>
+                                <th>Issued At</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qBody">
+                            <tr><td colspan="7" style="text-align:center;padding:24px;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Loading doctor queue…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- TAKE VITALS MODAL -->
+<div id="qIssueModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <div>
+                <h3 id="vitalsModalTitle" style="margin:0; font-size:1.15rem; color:#0F2B5B;"><i class="fa-solid fa-heart-pulse" style="color:#0D7A70; margin-right:6px;"></i> Take Vitals &amp; Move to Doctor Queue</h3>
+                <p style="font-size:12px; color:#64748b; margin:2px 0 0;">Pre-recorded vitals are automatically attached to the doctor's consultation note.</p>
+            </div>
+            <button class="close-btn" type="button" onclick="closeVitalsModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="qIssueForm" class="modal-body" style="padding-top:12px;">
+            <input type="hidden" id="vitalsTargetTokenId" value="">
+            <input type="hidden" id="vitalsTargetApptId" value="">
+            <input type="hidden" id="vitalsPatientDocId" value="">
+            
+            <!-- Patient Selector (visible only for new walk-ins) -->
+            <div id="vitalsPatientSearchGroup" class="form-group" style="position:relative; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <label style="margin-bottom:0; font-weight:600;">Patient Search (Name, Phone or ID) *</label>
+                    <button type="button" id="btnOpToggleQuickPatient" style="background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; cursor:pointer;">
+                        <i class="fa-solid fa-bolt"></i> + Quick New (Register Later)
+                    </button>
+                </div>
+                <div id="opSearchInputWrap">
+                    <input id="qPatientSearch" placeholder="Type name, phone or ID…" autocomplete="off" style="width:100%; height:38px; border:1px solid #cbd5e1; border-radius:6px; padding:0 10px;">
+                    <div id="qPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:200px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+                </div>
+            </div>
+
+            <!-- Quick Patient Fields (Inline for fast walk-in triage) -->
+            <div id="opQuickPatientSection" style="display:none; background:#f8fafc; border:1px solid #93c5fd; border-radius:8px; padding:12px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <strong style="font-size:12px; color:#1e40af;"><i class="fa-solid fa-user-plus"></i> Quick Patient (Registration to be completed later)</strong>
+                    <button type="button" id="btnOpCancelQuickPatient" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:600; cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Existing Patient</button>
+                </div>
+                <div class="form-grid" style="grid-template-columns: 1.2fr 1fr 0.8fr 1fr; gap:8px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;">Patient Name *</label>
+                        <input type="text" id="opQuickName" placeholder="Full name" style="height:34px; padding:0 8px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;">Phone *</label>
+                        <input type="tel" id="opQuickPhone" placeholder="10 digits" style="height:34px; padding:0 8px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;">Age</label>
+                        <input type="number" id="opQuickAge" placeholder="26" style="height:34px; padding:0 8px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;">Gender</label>
+                        <select id="opQuickGender" style="height:34px; padding:0 4px;">
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Patient Summary Banner -->
+            <div id="vitalsPatientSummaryCard" style="background:#f1f5f9; border-radius:6px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:700; color:#0F2B5B; font-size:14px;" id="vitalsCardPatientName">—</div>
+                    <div style="font-size:12px; color:#64748b;" id="vitalsCardPatientMeta">ID: — | Doctor: —</div>
+                </div>
+                <span id="vitalsCardRegBadge" style="background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;">Registered</span>
+            </div>
+
+            <!-- Doctor Selector if Walk-in -->
+            <div id="vitalsDoctorRow" class="form-group" style="margin-bottom:12px; display:none;">
+                <label style="font-size:12px; font-weight:600;">Assign Doctor *</label>
+                <select id="vitalsDoctorSelect" style="width:100%; height:38px; border:1px solid #cbd5e1; border-radius:6px; padding:0 10px;"></select>
+            </div>
+
+            <!-- Mandatory Vitals Grid -->
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px; margin-bottom:12px;">
+                <div style="font-weight:700; color:#991b1b; font-size:12px; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+                    <i class="fa-solid fa-heart-pulse"></i> Vital Signs Measurement
+                </div>
+                <div class="form-grid" style="grid-template-columns:repeat(3, 1fr); gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">Blood Pressure (BP) *</label>
+                        <input id="qBp" placeholder="120/80" required style="height:36px; padding:0 10px; font-weight:600;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">Pulse (bpm) *</label>
+                        <input id="qPulse" type="number" placeholder="78" required style="height:36px; padding:0 10px; font-weight:600;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">Temperature (°F) *</label>
+                        <input id="qTemp" type="number" step="0.1" placeholder="98.6" required style="height:36px; padding:0 10px; font-weight:600;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">Weight (kg)</label>
+                        <input id="qWeight" type="number" step="0.1" placeholder="58.5" style="height:36px; padding:0 10px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">SpO2 (%)</label>
+                        <input id="qSpo2" type="number" placeholder="99" style="height:36px; padding:0 10px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600;">Sugar / RBS (mg/dL)</label>
+                        <input id="qRbs" type="number" placeholder="105" style="height:36px; padding:0 10px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chief Complaint & Notes -->
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:600;">Chief Complaint / Reason for Visit</label>
+                <input id="qChief" placeholder="e.g. 2nd trimester routine check-up, mild headache..." style="width:100%; height:38px; border:1px solid #cbd5e1; border-radius:6px; padding:0 10px;">
+            </div>
+
+            <div class="modal-footer" style="padding:12px 0 0; display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn-secondary" onclick="closeVitalsModal()">Cancel</button>
+                <button type="submit" id="btnSubmitVitals" class="btn-primary" style="background:#0D7A70; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-arrow-right"></i> Save Vitals &amp; Move to Doctor Queue
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/branch.js?v=20261013b"></script>
+<script src="js/i18n.js?v=20261013b"></script>
+<script src="js/op-queue.js?v=20261013b"></script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Management — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <style>
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2>Patient Management</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div class="search-bar" style="max-width:400px; flex:1;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="patientMainSearch" placeholder="Search by name, phone or Patient ID..." style="width:100%;">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="btnImportPatients" class="btn-secondary" style="display:none; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-file-csv" style="color:#0d7a70;"></i> Import Patients</button>
+                        <button id="btnAllPatientsHistory" class="btn-secondary" style="border-color:#cbd5e1;"><i class="fa-solid fa-clock-rotate-left"></i> All / Past Patients</button>
+                        <button id="addNewBtn" class="btn-primary"><i class="fa-solid fa-plus"></i> Add New Patient</button>
+                    </div>
+                </div>
+
+                <!-- Status Filter Bar — today's patients by default -->
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+                    <button class="pt-status-filter active" data-status="today" style="padding:6px 14px;border:1px solid #e2e8f0;border-radius:20px;background:var(--primary-navy);color:white;font-size:12px;font-weight:600;cursor:pointer;">Today</button>
+                    <button class="pt-status-filter" data-status="current" style="padding:6px 14px;border:1px solid #e2e8f0;border-radius:20px;background:white;color:#64748b;font-size:12px;font-weight:500;cursor:pointer;">Current</button>
+                    <button class="pt-status-filter" data-status="opd" style="padding:6px 14px;border:1px solid #e2e8f0;border-radius:20px;background:white;color:#64748b;font-size:12px;font-weight:500;cursor:pointer;">OPD</button>
+                    <button class="pt-status-filter" data-status="admitted" style="padding:6px 14px;border:1px solid #bfdbfe;border-radius:20px;background:white;color:#2563eb;font-size:12px;font-weight:500;cursor:pointer;">Admitted</button>
+                    <button class="pt-status-filter" data-status="emergency" style="padding:6px 14px;border:1px solid #fecaca;border-radius:20px;background:white;color:#dc2626;font-size:12px;font-weight:500;cursor:pointer;">Emergency</button>
+                    <button class="pt-status-filter" data-status="icu" style="padding:6px 14px;border:1px solid #ddd6fe;border-radius:20px;background:white;color:#7c3aed;font-size:12px;font-weight:500;cursor:pointer;">ICU</button>
+                    <span style="font-size:12px;color:#94a3b8;margin-left:4px;">Old / discharged → All / Past Patients</span>
+                </div>
+
+                <!-- Patients Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Phone</th>
+                                    <th>Doctor</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patientsTableBody">
+                                <tr><td colspan="8" style="text-align: center;">Loading patients...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Patient Modal -->
+    <div id="addPatientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Patient</h2>
+                <button class="close-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPatientForm">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Full Name <span style="color:var(--error-color)">*</span></label>
+                            <input type="text" id="patientName" required>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal">(Optional)</span></label>
+                            <input type="date" id="patientDob">
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group full-width antenatal-section">
+                            <h3><i class="fa-solid fa-baby"></i> Antenatal <span style="color:var(--text-muted);font-size:.85rem;font-weight:normal;">(Optional)</span></h3>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="patientIsPregnant"> Currently pregnant</label>
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>Last menstrual period (LMP)</label>
+                            <input type="date" id="patientLmp">
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>EDD calculation</label>
+                            <select id="patientEddMode">
+                                <option value="auto">Automatic — LMP + 280 days</option>
+                                <option value="manual">Manual — set by scan / clinician</option>
+                            </select>
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>Expected delivery date (EDD)</label>
+                            <input type="date" id="patientEdd">
+                            <small style="color:var(--text-muted);">Gestational age today: <strong id="patientGestationalAge">—</strong></small>
+                        </div>
+                        <div class="form-group full-width antenatal-field" id="eddReasonGroup">
+                            <label>Reason for a manual EDD</label>
+                            <input type="text" id="patientEddReason" maxlength="200" placeholder="e.g. Corrected by first-trimester dating scan">
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>Gravida</label>
+                            <input type="number" id="patientGravida" min="0" step="1">
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>Para</label>
+                            <input type="number" id="patientPara" min="0" step="1">
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>Abortions</label>
+                            <input type="number" id="patientAbortions" min="0" step="1">
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label><input type="checkbox" id="patientHighRisk"> High-risk pregnancy</label>
+                        </div>
+                        <div class="form-group antenatal-field">
+                            <label>High-risk reason</label>
+                            <input type="text" id="patientHighRiskReason" maxlength="500">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number <span style="color:var(--error-color)">*</span></label>
+                            <input type="tel" id="patientPhone" required>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Blood Group <span style="color:var(--text-muted)">(Optional)</span></label>
+                            <select id="patientBlood">
+                                <option value="">Unknown / Not tested</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender <span style="color:var(--error-color)">*</span></label>
+                            <select id="patientGender" required aria-controls="femalePatientDetails" aria-expanded="false">
+                                <option value="">Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group full-width">
+                            <div id="femalePatientDetails" hidden style="padding:14px;margin-bottom:14px;background:#fff1f6;border:1px solid #fbcfe8;border-radius:8px;">
+                                <h3 style="font-size:14px;margin:0 0 12px;">Female patient details</h3>
+                                <div class="form-grid">
+                                    <div class="form-group"><label for="patientMaritalStatus">Marital status (Optional)</label><select id="patientMaritalStatus"><option value="">Not stated</option><option value="Married">Married</option><option value="Unmarried">Unmarried</option><option value="Other">Other</option></select></div>
+                                    <div class="form-group"><label for="patientSpouseName">Spouse / partner name (Optional)</label><input id="patientSpouseName" maxlength="120"></div>
+                                    <div class="form-group full-width"><label for="patientFemaleHistory">Gynaecological / menstrual history (Optional)</label><textarea id="patientFemaleHistory" maxlength="2000" placeholder="Relevant history reported by the patient"></textarea></div>
+                                </div>
+                            </div>
+                            <label>Address <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal">(Optional)</span></label>
+                            <input type="text" id="patientAddress">
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Name <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal">(Optional)</span></label>
+                            <input type="text" id="patientEmergency">
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Phone <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal">(Optional)</span></label>
+                            <input type="tel" id="patientEmergencyPhone">
+                        </div>
+                        <div class="form-group full-width" style="padding:12px 14px;background:var(--primary-light);border:1px solid #fbcfe8;border-radius:8px;">
+                            <label style="display:block;font-weight:600;margin-bottom:7px;"><i class="fa-solid fa-shield-heart"></i> Communication & Privacy Consent</label>
+                            <label style="display:block;margin:6px 0;font-size:13px;"><input type="checkbox" id="patientWhatsAppConsent"> Patient/guardian agrees to receive appointment, bill and care reminders by WhatsApp.</label>
+                            <label style="display:block;margin:6px 0;font-size:13px;"><input type="checkbox" id="patientEmailConsent"> Patient/guardian agrees to receive bills and reports by email.</label>
+                            <small style="color:var(--text-muted);">Consent is optional and can be changed later from the patient record.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Assigned Doctor <span style="color:var(--error-color)">*</span></label>
+                            <select id="patientDoctor" required>
+                                <option value="">Select Doctor</option>
+                            </select>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Department <span style="color:var(--error-color)">*</span></label>
+                            <select id="patientDepartment" required>
+                                <option value="">Select Department</option>
+                                <option value="General">General</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Orthopaedics">Orthopaedics</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="Gynaecology">Gynaecology</option>
+                                <option value="Paediatrics">Paediatrics</option>
+                                <option value="ENT">ENT</option>
+                                <option value="Ophthalmology">Ophthalmology</option>
+                                <option value="Dermatology">Dermatology</option>
+                                <option value="Oncology">Oncology</option>
+                                <option value="Urology">Urology</option>
+                                <option value="Nephrology">Nephrology</option>
+                                <option value="Psychiatry">Psychiatry</option>
+                                <option value="Dental">Dental</option>
+                                <option value="Emergency">Emergency</option>
+                            </select>
+                            <span class="error-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:5px;">This field is required</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <span style="font-size:12px;color:#64748b;margin-right:auto;"><i class="fa-solid fa-cloud-arrow-up"></i> Patient entries are saved locally when offline and sync automatically.</span>
+                        <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="savePatientBtn">Save Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div id="importPatientsModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+        <div class="modal-content" style="background:white; max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; border-radius:12px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+                <h2 style="margin:0; font-size:1.2rem; color:var(--primary-navy); font-weight:600;"><i class="fa-solid fa-file-csv" style="color:var(--primary-teal);"></i> Bulk Import Patients</h2>
+                <button class="close-btn" onclick="document.getElementById('importPatientsModal').style.display='none'" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#666;">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Upload File and Template -->
+                <div id="stepUpload">
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:8px; margin-bottom:15px;">
+                        <h3 style="margin-top:0; font-size:13.5px; color:#166534;"><i class="fa-solid fa-circle-info"></i> CSV Template Structure</h3>
+                        <p style="font-size:12.5px; color:#166534; line-height:1.5; margin-bottom:10px;">For migration compatibility, download the standard CSV template. Make sure to fill in patient details accordingly.</p>
+                        <button class="btn-secondary" id="btnDownloadTemplate" style="padding: 6px 12px; font-size: 12px; border-color:#bbf7d0; background:#f0fdf4; color:#166534;"><i class="fa-solid fa-download"></i> Download CSV Template</button>
+                    </div>
+                    
+                    <div id="fileUploadContainer" style="border: 2px dashed #cbd5e1; border-radius:8px; padding:30px; text-align:center; cursor:pointer; background:#f8fafc;" onclick="document.getElementById('patientCsvFileInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size:2.5rem; color:#64748b; opacity:0.6; display:block; margin-bottom:10px;"></i>
+                        <span style="font-size:13.5px; font-weight:500; color:#334155;">Click to select Patient CSV migration file</span>
+                        <input type="file" id="patientCsvFileInput" accept=".csv" style="display:none;">
+                    </div>
+                </div>
+
+                <!-- Step 2: Column Mapping -->
+                <div id="columnMappingStep" style="display:none; margin-top:20px;">
+                    <h3 style="margin-top:0; font-size:14px; color:var(--primary-navy); border-bottom:1px solid #eee; padding-bottom:8px;"><i class="fa-solid fa-map-location-dot"></i> Map CSV Headers to Patient Profile Fields</h3>
+                    <form id="patientMappingForm">
+                        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:12px;" id="mappingSelectsContainer">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                            <button type="button" class="btn-secondary" onclick="resetImportModal()">Back</button>
+                            <button type="submit" class="btn-primary">Preview & Validate</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Step 3: Preview Table -->
+                <div id="previewImportStep" style="display:none; margin-top:20px;">
+                    <h3 style="margin-top:0; font-size:14px; color:var(--primary-navy); border-bottom:1px solid #eee; padding-bottom:8px;"><i class="fa-solid fa-table-list"></i> Import Preview (First 10 records)</h3>
+                    <p style="font-size:12.5px; color:#b45309; font-weight:500; display:none; margin:8px 0;" id="dupWarningText"><i class="fa-solid fa-triangle-exclamation"></i> Warning: Duplicate phone numbers detected matching existing patients. Select policy below.</p>
+                    
+                    <div class="table-responsive" style="max-height: 250px; overflow-y:auto; margin-top:10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        <table>
+                            <thead id="previewTableHeader">
+                                <!-- Populated dynamically -->
+                            </thead>
+                            <tbody id="previewTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top:15px; background:#fffbeb; border:1px solid #fef3c7; padding:12px; border-radius:8px;" id="duplicateChoiceContainer">
+                        <label style="font-size:13px; font-weight:600; color:#b45309; display:block; margin-bottom:6px;">Duplicate Phone Handling Policy:</label>
+                        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                            <label style="font-size:12.5px; font-weight:500; color:#475569; display:flex; align-items:center; gap:6px;"><input type="radio" name="dupPolicy" value="skip" checked> Skip duplicate phone rows</label>
+                            <label style="font-size:12.5px; font-weight:500; color:#475569; display:flex; align-items:center; gap:6px;"><input type="radio" name="dupPolicy" value="force"> Import anyway (keep both)</label>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                        <button type="button" class="btn-secondary" onclick="resetImportModal()">Cancel</button>
+                        <button type="button" class="btn-primary" id="btnConfirmImport" style="background:#10b981;"><i class="fa-solid fa-file-import"></i> Confirm & Import Data</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Import Summary Results -->
+                <div id="summaryImportStep" style="display:none; margin-top:20px;">
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:20px; border-radius:8px; text-align:center; margin-bottom:15px;">
+                        <i class="fa-solid fa-circle-check" style="font-size:2.5rem; color:#10b981; margin-bottom:10px; display:block;"></i>
+                        <h3 style="margin:0; font-size:16px; color:#166534; font-weight:600;">Import Processing Completed!</h3>
+                    </div>
+                    <div style="font-size:13.5px; line-height:1.6; color:#334155;">
+                        <ul style="list-style-type:square; margin-left:20px;">
+                            <li>Patients successfully imported: <strong id="sumSuccessCount" style="color:#166534;">0</strong></li>
+                            <li>Skipped rows (Duplicate phones): <strong id="sumSkippedCount" style="color:#b45309;">0</strong></li>
+                            <li>Errors encountered: <strong id="sumErrorCount" style="color:#991b1b;">0</strong></li>
+                        </ul>
+                    </div>
+                    <div id="importErrorsContainer" style="display:none; margin-top:15px;">
+                        <h4 style="margin-bottom:6px; color:#991b1b; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-xmark"></i> Detailed List of Failures:</h4>
+                        <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px; border-radius:6px; font-family:monospace; font-size:11.5px; max-height:150px; overflow-y:auto;" id="importErrorsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    <div style="text-align:right; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                        <button class="btn-primary" onclick="document.getElementById('importPatientsModal').style.display='none'; loadPatients();">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All / Past patients side panel -->
+    <div id="patientsHistoryOverlay" class="hms-drawer-overlay" onclick="closePatientsHistory()"></div>
+    <aside id="patientsHistoryDrawer" class="hms-drawer" aria-label="All patients">
+        <div class="hms-drawer-header">
+            <div>
+                <h3 style="margin:0;color:var(--primary-navy);">All / Past Patients</h3>
+                <div style="font-size:12px;color:#64748b;margin-top:2px;">Includes discharged and archive records</div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="closePatientsHistory()" style="padding:6px 10px;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="hms-drawer-body">
+            <input type="search" id="patientsHistorySearch" placeholder="Search all patients..." style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                <button type="button" class="pt-hist-filter active" data-hist="all" style="padding:4px 10px;border-radius:14px;border:1px solid #e2e8f0;background:var(--primary-navy);color:#fff;font-size:11px;cursor:pointer;">All</button>
+                <button type="button" class="pt-hist-filter" data-hist="discharged" style="padding:4px 10px;border-radius:14px;border:1px solid #bbf7d0;background:#fff;color:#16a34a;font-size:11px;cursor:pointer;">Discharged</button>
+                <button type="button" class="pt-hist-filter" data-hist="current" style="padding:4px 10px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:11px;cursor:pointer;">Current only</button>
+            </div>
+            <div id="patientsHistoryList"></div>
+        </div>
+    </aside>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/patients.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

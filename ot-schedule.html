@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OT Schedule — Jyothsna Maternity Hospital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>OT & Delivery Schedule</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header" style="margin-bottom: 20px;">
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label style="font-size: 11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Schedule Date</label>
+                            <input type="date" id="otScheduleDate" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; font-weight:500;">
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label style="font-size: 11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Procedure / Service</label>
+                            <select id="otProcedureFilter" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; min-width:200px;">
+                                <option value="">All procedures</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label style="font-size: 11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">View</label>
+                            <select id="otViewMode" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px;">
+                                <option value="byRoom">By OT room</option>
+                                <option value="list">Flat list</option>
+                            </select>
+                        </div>
+                        <button id="btnScheduleOT" class="btn-primary" style="align-self:flex-end;"><i class="fa-solid fa-calendar-plus"></i> Schedule OT</button>
+                        <button id="calendarSyncBtn" class="btn-secondary" style="display:none; align-items:center; gap:6px; align-self:flex-end;">
+                            <i class="fa-regular fa-calendar-check"></i> Sync to my calendar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="otDaySummary"></div>
+                <div id="otBoardSections"></div>
+
+                <div class="card" id="otListCard">
+                    <div class="card-header"><h3 class="card-title" style="margin:0;">Day schedule</h3></div>
+                    <div class="table-responsive stack-mobile">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Patient</th>
+                                    <th>Procedure</th>
+                                    <th>Surgeon</th>
+                                    <th>OT Room</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="otScheduleBody">
+                                <tr><td colspan="7" style="text-align:center; padding:30px; color:#888;">Loading scheduled procedures...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Complete Procedure Post-Op modal -->
+    <div id="completeProcedureModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99990;align-items:center;justify-content:center;">
+        <div style="background:white;width:90%;max-width:500px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+                <h3 style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"><i class="fa-solid fa-circle-check" style="color:#0D7A70;margin-right:8px;"></i>Complete OT Procedure</h3>
+                <button onclick="document.getElementById('completeProcedureModal').style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+            </div>
+            <input type="hidden" id="completeOtBookingId">
+            <input type="hidden" id="completeOtBillId">
+            <input type="hidden" id="completeOtPatientDocId">
+            <input type="hidden" id="completeOtPatientId">
+            <input type="hidden" id="completeOtRoomId">
+            <div id="completePatientInfo" style="background:#E6F4F1;border:1px solid #B3DFD8;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#0B6159;"></div>
+            
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Move patient to which ward after procedure? <span style="color:red;">*</span></label>
+                <select id="postOpWardSelect" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;" onchange="loadBedsForPostOp(this.value)">
+                    <option value="">Select Option</option>
+                    <option value="Postnatal Ward">Postnatal Ward</option>
+                    <option value="Private Room">Private Room</option>
+                    <option value="ICU">ICU</option>
+                    <option value="Discharge">Discharge / Finalize</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="postOpBedSelectGroup" style="margin-bottom:16px; display:none;">
+                <label>Select Available Bed <span style="color:red;">*</span></label>
+                <select id="postOpBedSelect" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                    <option value="">— Select ward first —</option>
+                </select>
+            </div>
+            
+            <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #f1f5f9;padding-top:15px;">
+                <button class="btn-secondary" onclick="document.getElementById('completeProcedureModal').style.display='none'">Cancel</button>
+                <button class="btn-primary" onclick="confirmCompleteProcedure()" style="background:#0D7A70;border-color:#0D7A70;"><i class="fa-solid fa-circle-check"></i> Complete & Release</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule OT modal -->
+    <div id="scheduleOTModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99990;align-items:center;justify-content:center;">
+        <div style="background:white;width:90%;max-width:560px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);max-height:90vh;overflow:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+                <h3 style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"><i class="fa-solid fa-calendar-plus" style="color:#0D7A70;margin-right:8px;"></i>Schedule OT / Delivery</h3>
+                <button type="button" onclick="document.getElementById('scheduleOTModal').style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+            </div>
+            <div class="form-group" style="position:relative;margin-bottom:12px;">
+                <label>Search patient</label>
+                <input id="otBookPatientSearch" placeholder="Name, phone or ID…" autocomplete="off" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;">
+                <div id="otBookPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:200px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+                <input type="hidden" id="otBookPatientId">
+                <input type="hidden" id="otBookPatientDocId">
+                <input type="hidden" id="otBookPatientName">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group" style="margin:0;"><label>Procedure</label><select id="otBookProcedure" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></select></div>
+                <div class="form-group" style="margin:0;"><label>Surgeon</label><select id="otBookSurgeon" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></select></div>
+                <div class="form-group" style="margin:0;"><label>OT Room</label><select id="otBookRoom" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></select></div>
+                <div class="form-group" style="margin:0;"><label>Date</label><input type="date" id="otBookDate" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></div>
+                <div class="form-group" style="margin:0;"><label>Time</label><input type="time" id="otBookTime" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></div>
+                <div class="form-group" style="margin:0;"><label>Anaesthetist</label><input id="otBookAnaesthetist" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></div>
+            </div>
+            <div class="form-group" style="margin-top:12px;"><label>Pre-op notes</label><textarea id="otBookNotes" rows="2" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;"></textarea></div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px;">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('scheduleOTModal').style.display='none'">Cancel</button>
+                <button type="button" class="btn-primary" id="otBookSaveBtn"><i class="fa-solid fa-check"></i> Save booking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Compat SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/calendar-sync.js?v=20261013b"></script>
+    <script src="js/ot-schedule.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

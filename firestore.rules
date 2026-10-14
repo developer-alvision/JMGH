@@ -1,0 +1,573 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================================
+    // IDENTITY HELPERS
+    // Role and activation always come from /staff/{auth.uid}.
+    // The UID document is created server-side by the syncStaffUid
+    // function, never by the browser, so a signed-in user can
+    // never mint or escalate their own role.
+    // ==========================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function staffDocExists() {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function getStaffData() {
+      let identity = get(/databases/$(database)/documents/staff/$(request.auth.uid)).data;
+      return 'sourceStaffDocId' in identity && identity.sourceStaffDocId != request.auth.uid
+        ? get(/databases/$(database)/documents/staff/$(identity.sourceStaffDocId)).data
+        : identity;
+    }
+
+    function role() {
+      return staffDocExists() ? getStaffData().role : '';
+    }
+
+    function active() {
+      return staffDocExists()
+        && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.isActive == true
+        && getStaffData().isActive == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && active() && role() == 'admin';
+    }
+
+    // Any active staff member may read clinical data.
+    function canRead() {
+      return isSignedIn() && active();
+    }
+
+    // Owner is deliberately read-only across the whole database.
+    function hasRole(roles) {
+      return isSignedIn() && active() && role() in roles;
+    }
+
+    // ==========================================================
+    // FIELD VALIDATION HELPERS
+    // ==========================================================
+    function isText(value, maxLen) {
+      return value is string && value.size() <= maxLen;
+    }
+
+    function optionalText(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isText(data[field], maxLen);
+    }
+
+    function isMoney(value) {
+      return value is number && value >= 0 && value <= 100000000;
+    }
+
+    function optionalMoney(data, field) {
+      return !(field in data) || data[field] == null || isMoney(data[field]);
+    }
+
+    function optionalCount(data, field, maxValue) {
+      return !(field in data) || data[field] == null
+        || (data[field] is number && data[field] >= 0 && data[field] <= maxValue);
+    }
+
+    // Blocks a client from silently rewriting who recorded something.
+    function actorMatches(data) {
+      return !('recordedBy' in data) || data.recordedBy == null
+        || data.recordedBy == request.auth.token.email
+        || data.recordedBy == request.auth.uid;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ==========================================================
+    // STAFF — admin managed. Self-service is limited to harmless
+    // profile fields; role, activation and fee fields are locked.
+    // ==========================================================
+    match /staff/{staffId} {
+      allow read: if canRead() || (isSignedIn() && request.auth.uid == staffId);
+      allow create: if isAdmin() && !('temporaryPassword' in request.resource.data);
+      allow delete: if isAdmin() && request.auth.uid != staffId;
+      allow update: if (isAdmin() && !('temporaryPassword' in request.resource.data))
+        || (canRead() && request.auth.uid == staffId
+            && changedKeys().hasOnly(['activeSessionId', 'activeSessionAt', 'activeSessionAgent', 'lastLoginAt']));
+    }
+
+    // ==========================================================
+    // AUDIT LOG — append only, never mutable, actor is pinned.
+    // ==========================================================
+    match /auditLog/{logId} {
+      allow create: if canRead() && actorMatches(request.resource.data)
+        && (!('performedBy' in request.resource.data)
+            || request.resource.data.performedBy == request.auth.token.email
+            || request.resource.data.performedBy == request.auth.uid);
+      allow read: if hasRole(['admin', 'owner']);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Login trail — append only.
+    match /logins/{docId} {
+      allow read: if hasRole(['admin', 'owner']);
+      allow create: if canRead() && request.resource.data.email == request.auth.token.email;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // SETTINGS & MASTERS — admin only.
+    // ==========================================================
+    match /hospitalSettings/{docId} {
+      allow read: if canRead();
+      allow write: if isAdmin();
+    }
+
+    match /publicHospital/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /publicQueue/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /patientPortalAccess/{docId} {
+      allow read, write: if false;
+    }
+
+    match /portalLoginAttempts/{docId} {
+      allow read, write: if false;
+    }
+
+    match /departments/{deptId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /serviceCatalog/{docId} {
+      allow read: if canRead();
+      allow write: if isAdmin();
+    }
+
+    // ==========================================================
+    // PATIENTS — front office and clinical staff.
+    // ==========================================================
+    function validPatient() {
+      let data = request.resource.data;
+      return isText(data.name, 120) && data.name.size() > 0
+        && isText(data.phone, 20) && data.phone.size() >= 6
+        && optionalText(data, 'address', 500)
+        && optionalText(data, 'lmp', 20)
+        && optionalText(data, 'edd', 20)
+        && optionalText(data, 'highRiskReason', 500)
+        && optionalText(data, 'abhaNumber', 32)
+        && optionalText(data, 'abhaAddress', 120)
+        && optionalCount(data, 'gravida', 30)
+        && optionalCount(data, 'para', 30)
+        && optionalCount(data, 'abortions', 30);
+    }
+
+    match /patients/{patientId} {
+      allow read: if canRead();
+      // billing_staff is included because admission, discharge and
+      // bed-status updates on the patient record are driven from Billing.
+      allow create, update: if hasRole(['admin', 'receptionist', 'nurse', 'doctor', 'billing_staff']) && validPatient();
+      allow delete: if isAdmin();
+
+      // Require a child collection segment: a recursive wildcard alone also
+      // matches the patient document itself under Rules v2.
+      match /{subcollection}/{childId} {
+        allow read: if canRead();
+        allow write: if hasRole(['admin', 'receptionist', 'nurse', 'doctor', 'billing_staff', 'pharmacist', 'lab_technician']);
+      }
+    }
+
+    match /patientIndex/{docId} {
+      allow read: if canRead();
+      allow write: if hasRole(['admin', 'receptionist', 'nurse', 'doctor']);
+    }
+
+    // ==========================================================
+    // BILLING — money fields are type and range checked. Bills
+    // may be edited by billing staff; payment rows may not.
+    // ==========================================================
+    function validBill() {
+      let data = request.resource.data;
+      return optionalMoney(data, 'grandTotal')
+        && optionalMoney(data, 'subtotal')
+        && optionalMoney(data, 'amountPaid')
+        && optionalMoney(data, 'balanceDue')
+        && optionalMoney(data, 'discountAmount')
+        && optionalMoney(data, 'gstAmount')
+        && optionalText(data, 'patientName', 120)
+        && optionalText(data, 'billId', 40)
+        && optionalText(data, 'paymentStatus', 20);
+    }
+
+    // pharmacist is included for counter sales and for cancelling or
+    // refunding pharmacy bills. Bills are never deleted from the
+    // browser — cancelling sets a status and keeps the figures.
+    match /bills/{docId} {
+      allow read: if canRead();
+      allow create: if validBill() && (hasRole(['admin', 'receptionist', 'billing_staff', 'pharmacist'])
+        || (hasRole(['doctor']) && request.resource.data.amountPaid == 0
+            && request.resource.data.paymentStatus == 'unpaid'
+            && request.resource.data.billType == 'OPD'
+            && ((('consultationId' in request.resource.data) && isText(request.resource.data.consultationId, 128)
+                && request.resource.data.consultationId.size() > 0)
+              || (('appointmentId' in request.resource.data) && isText(request.resource.data.appointmentId, 128)
+                && getAfter(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.bookedBy == request.auth.token.email
+                && getAfter(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.patientId == request.resource.data.patientId))));
+      allow update: if validBill() && (hasRole(['admin', 'receptionist', 'billing_staff', 'pharmacist'])
+        || (hasRole(['doctor', 'nurse', 'lab_technician'])
+            && changedKeys().hasOnly(['reportStatus', 'labCompleted', 'labReportId', 'labReportUrl',
+              'labCompletedAt', 'labCompletedBy', 'notifyPatient', 'notifyDoctor'])));
+      // Browser never deletes in normal UI; admin may purge for Setup / Fresh Demo only.
+      allow delete: if isAdmin();
+    }
+
+    // Payment ledger is append only — a recorded receipt can never
+    // be edited or deleted from the browser, only reversed by a new
+    // entry. Razorpay rows are written by the Admin SDK.
+    //
+    // A refund is posted as a negative row rather than by editing the
+    // original receipt, so the ledger still sums correctly and the
+    // original collection stays visible.
+    function isLedgerAmount(value) {
+      return value is number && value >= -100000000 && value <= 100000000;
+    }
+
+    match /payments/{docId} {
+      allow read: if canRead();
+      allow create: if hasRole(['admin', 'receptionist', 'billing_staff', 'pharmacist'])
+        && (!('provider' in request.resource.data) || request.resource.data.provider != 'razorpay')
+        && isLedgerAmount(request.resource.data.amount)
+        && (request.resource.data.amount >= 0
+            || (request.resource.data.type == 'refund'
+                && request.resource.data.reason is string
+                && request.resource.data.reason.size() >= 5))
+        && actorMatches(request.resource.data);
+      allow update: if false;
+      // Admin-only purge for Setup / Fresh Demo.
+      allow delete: if isAdmin();
+    }
+
+    // Written only by Functions (Razorpay order tracking).
+    match /paymentAttempts/{docId} {
+      allow read: if hasRole(['admin', 'owner', 'billing_staff']);
+      allow write: if false;
+    }
+
+    match /billCounters/{docId} {
+      allow read: if canRead();
+      allow write: if hasRole(['admin', 'receptionist', 'billing_staff', 'pharmacist'])
+        || (hasRole(['doctor']) && docId == 'opd');
+    }
+
+    match /counters/{docId} {
+      allow read: if canRead();
+      allow write: if hasRole(['admin', 'receptionist', 'billing_staff', 'doctor', 'nurse', 'pharmacist', 'lab_technician']);
+    }
+
+    match /patientCounter/{docId} {
+      allow read: if canRead();
+      allow write: if hasRole(['admin', 'receptionist', 'nurse', 'doctor']);
+    }
+
+    // ==========================================================
+    // CLINICAL RECORDS
+    // ==========================================================
+    match /consultations/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor']);
+      allow delete: if isAdmin();
+    }
+
+    match /prescriptions/{docId} {
+      allow read: if canRead();
+      allow create: if hasRole(['admin', 'doctor']);
+      allow update: if hasRole(['admin', 'doctor'])
+        || (hasRole(['pharmacist'])
+            && changedKeys().hasOnly(['status', 'dispensedAt', 'dispensedBy'])
+            && request.resource.data.status == 'dispensed'
+            && request.resource.data.dispensedBy == request.auth.token.email);
+      allow delete: if isAdmin();
+    }
+
+    match /ancVisits/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /deliveries/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /babies/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // CERTIFICATES — issued documents are a legal record. They can
+    // be created by the issuing roles and afterwards only cancelled
+    // (never edited, never deleted) so a reprint always matches the
+    // document that was handed to the patient.
+    // ==========================================================
+    match /certificates/{docId} {
+      allow read: if canRead();
+      // The callable reserves a serial and creates the record with Admin SDK.
+      allow create: if false;
+      allow update: if hasRole(['admin', 'doctor'])
+        && changedKeys().hasOnly(['status', 'cancelledAt', 'cancelledBy', 'cancelReason'])
+        && request.resource.data.status == 'cancelled';
+      allow delete: if false;
+    }
+
+    // ==========================================================
+    // DIAGNOSTICS
+    // ==========================================================
+    match /reports/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'lab_technician', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /labQueue/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'lab_technician', 'doctor', 'nurse', 'receptionist', 'billing_staff']);
+      allow delete: if isAdmin();
+    }
+
+    match /imagingQueue/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'lab_technician', 'doctor', 'nurse', 'receptionist', 'billing_staff']);
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // PHARMACY
+    // ==========================================================
+    function validStockItem() {
+      let data = request.resource.data;
+      return isText(data.medicineName, 160) && data.medicineName.size() > 0
+        && optionalMoney(data, 'price')
+        && optionalMoney(data, 'purchasePrice')
+        && optionalMoney(data, 'mrp')
+        && optionalCount(data, 'stock', 1000000)
+        && optionalCount(data, 'reorderLevel', 1000000)
+        && optionalText(data, 'batchNo', 60)
+        && optionalText(data, 'genericName', 160)
+        && optionalText(data, 'unit', 40)
+        && optionalText(data, 'expiryDate', 20)
+        && optionalText(data, 'manufacturer', 160);
+    }
+
+    match /pharmacy/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'pharmacist']) && validStockItem();
+      allow delete: if isAdmin();
+    }
+
+    match /dispensingHistory/{docId} {
+      allow read: if canRead();
+      allow create: if hasRole(['admin', 'pharmacist']);
+      allow update: if hasRole(['admin', 'pharmacist']);
+      allow delete: if isAdmin();
+    }
+
+    match /stockReceipts/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'pharmacist']);
+      allow delete: if isAdmin();
+    }
+
+    match /pharmacyLog/{docId} {
+      allow read: if canRead();
+      allow create: if hasRole(['admin', 'pharmacist']);
+      allow update, delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // WARD, THEATRE & SCHEDULING
+    // ==========================================================
+    match /beds/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist', 'nurse', 'billing_staff']);
+      allow delete: if isAdmin();
+    }
+
+    match /admissions/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist', 'nurse', 'billing_staff']);
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /otBookings/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'receptionist', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // ATTENDANCE — biometric punches arrive through the Admin SDK
+    // and bypass these rules; browsers may only record manually.
+    // ==========================================================
+    match /attendance/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist'])
+        && (!('totalHours' in request.resource.data)
+            || request.resource.data.totalHours == null
+            || (request.resource.data.totalHours is number
+                && request.resource.data.totalHours >= 0
+                && request.resource.data.totalHours <= 24));
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================================
+    // SERVER-OWNED COLLECTIONS
+    // Readable for support and audit, written only by Functions.
+    // ==========================================================
+    match /messageLog/{docId} {
+      allow read: if hasRole(['admin', 'owner']);
+      allow write: if false;
+    }
+
+    match /abdmLinks/{docId} {
+      allow read: if canRead();
+      allow write: if false;
+    }
+
+    match /calendarTokens/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /backupLog/{docId} {
+      allow read: if hasRole(['admin', 'owner']);
+      allow write: if false;
+    }
+
+    // ==========================================================
+    // EXTENDED CLINICAL / OPS MODULES (2026 feature pack)
+    // ==========================================================
+    match /vaccinations/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    // Per-doctor, per-day token counter written inside a transaction when an
+    // appointment is booked. Without this rule every booking fails on write.
+    match /appointmentCounters/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /partographs/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /dischargeLogs/{docId} {
+      allow read: if canRead();
+      allow create: if hasRole(['admin', 'doctor', 'nurse', 'receptionist', 'billing_staff']);
+      allow update, delete: if isAdmin();
+    }
+
+    match /opTokens/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'receptionist', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /insuranceClaims/{docId} {
+      allow read: if hasRole(['admin', 'billing_staff', 'receptionist', 'owner']);
+      allow create, update: if hasRole(['admin', 'billing_staff', 'receptionist']);
+      allow delete: if isAdmin();
+    }
+
+    match /carePackages/{docId} {
+      allow read: if canRead();
+      allow create, update, delete: if hasRole(['admin', 'billing_staff']);
+    }
+
+    match /incidents/{docId} {
+      allow read: if hasRole(['admin', 'doctor', 'nurse', 'owner']);
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /consentRecords/{docId} {
+      allow read: if hasRole(['admin', 'doctor', 'nurse', 'owner']);
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /qualityAudits/{docId} {
+      allow read: if hasRole(['admin', 'doctor', 'nurse', 'owner']);
+      allow create, update: if hasRole(['admin', 'doctor', 'nurse']);
+      allow delete: if isAdmin();
+    }
+
+    match /teleconsults/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'doctor', 'receptionist']);
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{docId} {
+      allow read: if canRead();
+      allow create, update: if canRead();
+      allow delete: if isAdmin();
+    }
+
+    match /labTestCatalog/{docId} {
+      allow read: if canRead();
+      allow create, update: if hasRole(['admin', 'lab_technician', 'doctor']);
+      allow delete: if isAdmin();
+    }
+
+    match /pharmacy/{docId} {
+      allow read: if canRead();
+      allow create, update: if canRead();
+      allow delete: if isAdmin();
+    }
+
+    match /stockReceipts/{docId} {
+      allow read: if canRead();
+      allow create, update: if canRead();
+      allow delete: if isAdmin();
+    }
+
+    match /dispensingHistory/{docId} {
+      allow read: if canRead();
+      allow create, update: if canRead();
+      allow delete: if isAdmin();
+    }
+
+    match /suppliers/{docId} {
+      allow read: if canRead();
+      allow create, update: if canRead();
+      allow delete: if isAdmin();
+    }
+
+    // Anything not matched above is denied.
+  }
+}

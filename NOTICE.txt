@@ -1,0 +1,30 @@
+JMGH HMS — HOSPITAL MANAGEMENT SYSTEM
+=======================================
+
+Product     : JMGH HMS
+Design      : Alvision Media
+Owner       : Alvision Media  (alvisionmedia.com · hello@alvisionmedia.com)
+Author      : Sanath Sathyamurthy
+
+Copyright (c) 2026 Alvision Media. All rights reserved.
+
+ATTRIBUTION
+-----------
+The product credit rendered in the application footer, and the attribution
+block in js/helpers.js, form part of the licence under which this software
+is supplied.
+
+LICENSED DEPLOYMENT
+-------------------
+This copy is licensed for deployment at the hospital named in
+Hospital Settings.
+
+THIRD-PARTY COMPONENTS
+----------------------
+jsPDF and jsPDF-AutoTable   MIT License
+Firebase JavaScript SDK     Apache License 2.0
+Font Awesome (free icons)   CC BY 4.0 / SIL OFL 1.1 / MIT
+Noto Sans Telugu            SIL Open Font License 1.1
+
+Each remains the property of its respective authors and is used under the
+terms of its own licence.

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jyothsna Maternity Hospital - Login</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-left">
+            <div class="brand" style="flex-direction: column; gap: 15px; margin-bottom: 20px;">
+                <img src="images/logo.png" alt="Jyothsna Logo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <h1 id="loginHospitalName" style="font-size: 1.8rem; line-height: 1.2; text-align: center; color: #fff;">Jyothsna Maternity Hospital</h1>
+            </div>
+            <p class="tagline">Enterprise Hospital Management System</p>
+            <div class="login-illustration">
+                <i class="fa-solid fa-stethoscope"></i>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-form-wrapper">
+                <h2>Staff Login</h2>
+                <div id="errorMessage" class="error-message"></div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div style="position:relative;">
+                            <input type="password" id="password" autocomplete="current-password" required style="padding-right:40px;">
+                            <button type="button" id="togglePwdBtn" onclick="(function(){var i=document.getElementById('password');var b=document.getElementById('togglePwdBtn');if(i.type==='password'){i.type='text';b.innerHTML='<i class=\'fa-solid fa-eye-slash\'></i>';}else{i.type='password';b.innerHTML='<i class=\'fa-solid fa-eye\'></i>';};})()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:4px;line-height:1;"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <button type="submit" id="loginBtn" class="btn-login">Sign In</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script>
+        (function loadLoginHospitalName() {
+            var fallback = 'Jyothsna Maternity Hospital';
+            db.collection('publicHospital').doc('main').get()
+                .then(function(doc) {
+                    var hospitalName = doc.exists && doc.data().hospitalName ? doc.data().hospitalName : fallback;
+                    document.getElementById('loginHospitalName').textContent = hospitalName;
+                    document.title = hospitalName + ' - Login';
+                })
+                .catch(function() {
+                    document.getElementById('loginHospitalName').textContent = fallback;
+                    document.title = fallback + ' - Login';
+                });
+        })();
+    </script>
+    <script src="js/login.js?v=20261013b"></script>
+</body>
+</html>
+
+
+

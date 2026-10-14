@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Portal — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <meta name="theme-color" content="#A61E4D">
+    <style>
+        body.portal-body { background: linear-gradient(160deg, #FAF7F8 0%, #fff 40%, #FFF0F6 100%); min-height:100vh; }
+        .portal-shell { max-width:880px; margin:0 auto; padding:28px 16px 60px; }
+        .portal-card { background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(166,30,77,.08); padding:28px; margin-bottom:18px; }
+        .portal-brand { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+        .portal-brand img { width:56px; height:56px; border-radius:50%; object-fit:cover; }
+    </style>
+</head>
+<body class="portal-body">
+<div class="portal-shell">
+    <div class="portal-brand">
+        <img src="images/logo.png" alt="Logo">
+        <div>
+            <h1 style="margin:0;color:#A61E4D;font-size:1.5rem;" id="portalHospital">Jyothsna Maternity Hospital</h1>
+            <div style="color:#64748b;font-size:13px;">Patient / attendant portal</div>
+        </div>
+    </div>
+
+    <div class="portal-card" id="portalLogin">
+        <h2 style="margin:0 0 8px;">View your records</h2>
+        <p style="color:#64748b;font-size:13px;margin-bottom:16px;">Enter the Patient ID and portal PIN given by hospital staff.</p>
+        <div class="form-group"><label>Patient ID</label><input id="portalPatientId" placeholder="e.g. SA-2026-00001"></div>
+        <div class="form-group"><label>Portal PIN</label><input id="portalPin" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 digit PIN from hospital"></div>
+        <button class="btn-primary" type="button" id="portalLoginBtn" style="width:100%;margin-top:8px;">Open portal</button>
+        <p style="font-size:12px;color:#64748b;margin-top:12px;">Demo tip: set PIN from Patient Profile → Portal PIN. Fresh demo uses PIN <strong>1234</strong> for sample patients.</p>
+        <div id="portalError" class="error-message" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="portalContent" style="display:none;">
+        <div class="portal-card">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <div>
+                    <h2 style="margin:0;" id="portalName">—</h2>
+                    <div style="color:#64748b;" id="portalMeta"></div>
+                </div>
+                <button class="btn-secondary" type="button" id="portalLogoutBtn">Sign out</button>
+            </div>
+        </div>
+        <div class="portal-card"><h3>Upcoming appointments</h3><div id="portalAppts"></div></div>
+        <div class="portal-card"><h3>Bills</h3><div id="portalBills"></div></div>
+        <div class="portal-card"><h3>Lab / imaging status</h3><div id="portalReports"></div></div>
+        <div class="portal-card"><h3>Discharge summary</h3><div id="portalDischarge" style="white-space:pre-wrap;font-size:13px;color:#334155;"></div></div>
+    </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script>
+// Project comes from js/firebase-config.js, loaded just above.
+const firebaseConfig = window.FIREBASE_CONFIG || {};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+function callFunction(name, data) {
+    return firebase.app().functions('asia-south1').httpsCallable(name)(data || {}).then(function (r) { return r.data; });
+}
+function portalErrText(e) {
+    if (!e) return 'Unable to open portal.';
+    var msg = e.message || '';
+    if (e.code) msg = (e.code + ': ' + msg).replace(/^functions\//, '');
+    if (/internal|unavailable/i.test(msg)) {
+        return 'Portal service temporarily unavailable. Ask reception to confirm your Patient ID and Portal PIN (Patient Profile → Set Portal PIN).';
+    }
+    if (/permission|invalid|not-found|PIN/i.test(msg)) {
+        return msg.replace(/^Firebase:?\s*/i, '').replace(/^\(.*?\)\/?/, '') || 'Invalid Patient ID or PIN.';
+    }
+    return msg || 'Unable to open portal.';
+}
+db.collection('publicHospital').doc('main').get().then(function (doc) {
+    if (doc.exists && doc.data().hospitalName) document.getElementById('portalHospital').textContent = doc.data().hospitalName;
+}).catch(function () {});
+document.getElementById('portalLoginBtn').onclick = function () {
+    var patientId = document.getElementById('portalPatientId').value.trim();
+    var pin = document.getElementById('portalPin').value.trim();
+    var err = document.getElementById('portalError');
+    var btn = document.getElementById('portalLoginBtn');
+    err.textContent = '';
+    if (!patientId || !pin) { err.textContent = 'Enter Patient ID and PIN.'; return; }
+    if (!/^\d{4,8}$/.test(pin)) { err.textContent = 'PIN must be 4–8 digits.'; return; }
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
+    var ready = firebase.auth().currentUser
+        ? Promise.resolve()
+        : firebase.auth().signInAnonymously().catch(function () { return null; });
+    ready.then(function () {
+        return callFunction('getPatientPortalData', { patientId: patientId, pin: pin });
+    }).then(function (data) {
+        sessionStorage.setItem('portalSession', JSON.stringify({ patientId: patientId, pin: pin, at: Date.now() }));
+        renderPortal(data);
+    }).catch(function (e) {
+        console.error(e);
+        err.textContent = portalErrText(e);
+    }).finally(function () {
+        btn.disabled = false;
+        btn.textContent = 'Open portal';
+    });
+};
+document.getElementById('portalLogoutBtn').onclick = function () {
+    sessionStorage.removeItem('portalSession');
+    document.getElementById('portalContent').style.display = 'none';
+    document.getElementById('portalLogin').style.display = 'block';
+};
+function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
+function renderPortal(data) {
+    document.getElementById('portalLogin').style.display = 'none';
+    document.getElementById('portalContent').style.display = 'block';
+    document.getElementById('portalName').textContent = data.patient.name || data.patient.patientId;
+    document.getElementById('portalMeta').textContent = (data.patient.patientId || '') + (data.patient.edd ? (' · EDD ' + data.patient.edd) : '');
+    document.getElementById('portalAppts').innerHTML = (data.appointments || []).length
+        ? '<ul>' + data.appointments.map(function (a) { return '<li>' + escapeHtml(a.date || '') + ' ' + escapeHtml(a.time || '') + ' — ' + escapeHtml(a.doctorName || '') + ' (' + escapeHtml(a.status || '') + ')</li>'; }).join('') + '</ul>'
+        : '<div style="color:#64748b;">No upcoming appointments.</div>';
+    document.getElementById('portalBills').innerHTML = (data.bills || []).length
+        ? '<ul>' + data.bills.map(function (b) { return '<li>' + escapeHtml(b.billNo || '') + ' — ' + money(b.grandTotal) + ' · Due ' + money(b.balanceDue) + ' · ' + escapeHtml(b.paymentStatus || '') + '</li>'; }).join('') + '</ul>'
+        : '<div style="color:#64748b;">No bills found.</div>';
+    document.getElementById('portalReports').innerHTML = (data.reports || []).length
+        ? '<ul>' + data.reports.map(function (r) {
+            var link = '';
+            if (r.downloadUrl && /^https:\/\//i.test(r.downloadUrl) && (r.status || '').toLowerCase() === 'ready') {
+                link = ' · <a href="' + escapeHtml(r.downloadUrl) + '" target="_blank" rel="noopener noreferrer">Download</a>';
+            }
+            return '<li>' + escapeHtml(r.testName || r.type || 'Report') + ' — ' + escapeHtml(r.status || '') + (r.reportDate ? (' · ' + escapeHtml(r.reportDate)) : '') + link + '</li>';
+        }).join('') + '</ul>'
+        : '<div style="color:#64748b;">No lab/imaging items.</div>';
+    var d = data.patient.dischargePlan || {};
+    document.getElementById('portalDischarge').textContent = d.diagnosis
+        ? ('Diagnosis: ' + (d.diagnosis || '') + '\n\nCourse: ' + (d.course || '') + '\n\nMedicines: ' + (d.meds || '') + '\n\nAdvice: ' + (d.advice || '') + '\n\nFollow-up: ' + (d.followUp || '—'))
+        : 'No discharge summary available yet.';
+}
+(function resume() {
+    try {
+        var s = JSON.parse(sessionStorage.getItem('portalSession') || 'null');
+        if (!s || !s.patientId || !s.pin || (Date.now() - s.at) > 4 * 3600000) return;
+        document.getElementById('portalPatientId').value = s.patientId;
+        document.getElementById('portalPin').value = s.pin;
+        document.getElementById('portalLoginBtn').click();
+    } catch (e) {}
+})();
+</script>
+</body>
+</html>

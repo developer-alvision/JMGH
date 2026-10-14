@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <style>
+        /* Doctor dashboard custom styles */
+        .doctor-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media(max-width: 1024px) {
+            .doctor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .badge-token {
+            background-color: rgba(13, 122, 112, 0.1);
+            color: var(--primary-teal);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .badge-status-waiting { background: #FEF3C7; color: #D97706; }
+        .badge-status-progress { background: #E0F2FE; color: #0369A1; }
+        .badge-status-completed { background: #D1FAE5; color: #065F46; }
+        
+        .btn-start-consult {
+            background-color: var(--primary-teal);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+        }
+        .btn-start-consult:hover {
+            background-color: var(--primary-teal-hover);
+        }
+
+        .btn-view-consult {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+        }
+        .btn-view-consult:hover {
+            background-color: #e2e8f0;
+            color: var(--primary-navy);
+        }
+
+        .search-results-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            margin-top: 2px;
+        }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .search-result-item:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>Clinician Portal</h2></div>
+                <div class="nav-user">
+                    <button id="calendarSyncBtn" class="btn-secondary" style="display:none; align-items:center; gap:6px; margin-right:10px;"><i class="fa-regular fa-calendar-check"></i> Sync to my calendar</button>
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                
+                <!-- TOP HEADER BAR -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <div>
+                        <h1 class="page-title" id="doctorWelcome" style="margin-bottom:4px;">Welcome Back</h1>
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Here is your patient queue and reports summary for today.</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="btnOpenConsultModal" class="btn-primary" style="height:42px; background:#0D7A70; border-color:#0D7A70;"><i class="fa-solid fa-stethoscope"></i> Start Consultation</button>
+                        <button id="btnOpenBookModal" class="btn-secondary" style="height:42px; background:#f1f5f9; color:#334155; border-color:#cbd5e1;"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</button>
+                    </div>
+                </div>
+
+                <!-- TOP ROW: Summary Cards -->
+                <div class="stat-cards" style="margin-bottom: 24px;">
+                    <!-- Card 1: Today's Appointments -->
+                    <div class="stat-card" style="border-bottom:4px solid var(--primary-navy);">
+                        <div class="stat-icon" style="background:rgba(15,43,91,0.08); color:var(--primary-navy);"><i class="fa-regular fa-calendar-check"></i></div>
+                        <div class="stat-details">
+                            <h3>Today's Schedule</h3>
+                            <div class="value" id="cardTodayAppointments">0</div>
+                        </div>
+                    </div>
+                    <!-- Card 2: Waiting Patients -->
+                    <div class="stat-card" style="border-bottom:4px solid #D97706;">
+                        <div class="stat-icon" style="background:rgba(217,119,6,0.08); color:#D97706;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                        <div class="stat-details">
+                            <h3>Waiting Queue</h3>
+                            <div class="value" id="cardWaitingPatients" style="color:#D97706;">0</div>
+                        </div>
+                    </div>
+                    <!-- Card 3: Completed Today -->
+                    <div class="stat-card" style="border-bottom:4px solid #16a34a;">
+                        <div class="stat-icon" style="background:rgba(22,163,74,0.08); color:#16a34a;"><i class="fa-regular fa-circle-check"></i></div>
+                        <div class="stat-details">
+                            <h3>Completed Today</h3>
+                            <div class="value" id="cardCompletedPatients" style="color:#16a34a;">0</div>
+                        </div>
+                    </div>
+                    <!-- Card 4: Pending Reports -->
+                    <div class="stat-card" style="border-bottom:4px solid var(--primary-teal);">
+                        <div class="stat-icon" style="background:rgba(13,122,112,0.08); color:var(--primary-teal);"><i class="fa-solid fa-file-waveform"></i></div>
+                        <div class="stat-details">
+                            <h3>Pending Reports</h3>
+                            <div class="value" id="cardPendingReports" style="color:var(--primary-teal);">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MAIN WORKSPACE: Columns -->
+                <div class="doctor-grid">
+                    
+                    <!-- LEFT COLUMN: Today's Queue -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-people-line" style="color:var(--primary-teal); margin-right:6px;"></i> Today's Queue</h3>
+                            <span style="font-size:12px; color:var(--text-muted); font-weight:600;" id="queueDate">Today</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Token</th>
+                                        <th>Patient Name</th>
+                                        <th>Patient ID</th>
+                                        <th>Age</th>
+                                        <th>Chief Complaint</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorQueueBody">
+                                    <tr><td colspan="7" style="text-align:center; padding:20px; color:#888;">Loading appointments queue...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Pending Reports -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-vials" style="color:var(--primary-teal); margin-right:6px;"></i> Patients' Diagnostic Reports</h3>
+                            <span id="reportsCountBadge" style="background:#0F2B5B; color:white; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">0 active</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Patient Name</th>
+                                        <th>Test Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorReportsBody">
+                                    <tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">Loading patient diagnostics...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <!-- BOTTOM ROW: Written Prescriptions Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-prescription-bottle-medical" style="color:var(--primary-teal); margin-right:6px;"></i> Prescriptions Written (Pending Fulfillment)</h3>
+                        <span id="prescriptionCountBadge" style="background:var(--primary-teal); color:white; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600;">0 pending</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>Prescription ID</th>
+                                    <th>Medicines Prescribed</th>
+                                    <th>Date Written</th>
+                                    <th>Fulfillment Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorPrescriptionsBody">
+                                <tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">Loading written prescriptions...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Booking Modal (Locked to Current Doctor) -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Quick Book Appointment</h2>
+                <button class="close-btn" id="closeBookingModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <div class="form-grid">
+                        
+                        <!-- Patient Search -->
+                        <div class="form-group full-width" style="position:relative;">
+                            <label>Search Patient <span style="color:var(--error-color)">*</span></label>
+                            <div class="search-bar" style="border:1px solid var(--border-color); border-radius:6px;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="apptPatientSearch" placeholder="Type at least 2 characters..." style="width:100%; border:none; padding:10px 12px; outline:none;" autocomplete="off">
+                            </div>
+                            <div class="search-results-dropdown" id="apptPatientSearchResults"></div>
+                        </div>
+
+                        <!-- Selected Patient Details -->
+                        <div class="form-group full-width" id="selectedPatientCard" style="display:none; background:#f0f9f7; border: 1px solid var(--primary-teal); border-radius:8px; padding:14px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <div>
+                                    <strong id="cardPatientName" style="color:var(--primary-navy);"></strong>
+                                    <span class="id-badge" id="cardPatientId" style="margin-left:8px;"></span>
+                                </div>
+                                <button type="button" id="clearPatientBtn" style="background:none; border:none; color:var(--error-color); cursor:pointer; font-weight:600; font-size:0.8rem;"><i class="fa-solid fa-circle-xmark"></i> Reset</button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+                                <div><span style="color:#666;">Age/Gender:</span> <span id="cardAgeGender">—</span></div>
+                                <div><span style="color:#666;">Phone:</span> <span id="cardPhone">—</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Locked Doctor Name -->
+                        <div class="form-group">
+                            <label>Consulting Doctor (Locked)</label>
+                            <input type="text" id="bookingDoctorName" class="filter-input" style="width:100%; height:40px; background:#f1f5f9; font-weight:600;" readonly>
+                            <input type="hidden" id="bookingDoctorId">
+                        </div>
+
+                        <!-- Department -->
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="bookingDept" class="filter-input" style="width:100%; height:40px; background:#f1f5f9;" readonly>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="form-group">
+                            <label>Appointment Date <span style="color:var(--error-color)">*</span></label>
+                            <input type="date" id="bookingDate" required class="filter-input" style="width:100%; height:40px;">
+                        </div>
+
+                        <!-- Time Slot -->
+                        <div class="form-group">
+                            <label>Time Slot <span style="color:var(--error-color)">*</span></label>
+                            <select id="bookingTime" required class="filter-input" style="width:100%; height:40px;">
+                                <option value="">Select Slot</option>
+                                <option value="09:00 AM">09:00 AM</option>
+                                <option value="09:30 AM">09:30 AM</option>
+                                <option value="10:00 AM">10:00 AM</option>
+                                <option value="10:30 AM">10:30 AM</option>
+                                <option value="11:00 AM">11:00 AM</option>
+                                <option value="11:30 AM">11:30 AM</option>
+                                <option value="12:00 PM">12:00 PM</option>
+                                <option value="12:30 PM">12:30 PM</option>
+                                <option value="01:00 PM">01:00 PM</option>
+                                <option value="01:30 PM">01:30 PM</option>
+                                <option value="02:00 PM">02:00 PM</option>
+                                <option value="02:30 PM">02:30 PM</option>
+                                <option value="03:00 PM">03:00 PM</option>
+                                <option value="03:30 PM">03:30 PM</option>
+                                <option value="04:00 PM">04:00 PM</option>
+                                <option value="04:30 PM">04:30 PM</option>
+                                <option value="05:00 PM">05:00 PM</option>
+                                <option value="05:30 PM">05:30 PM</option>
+                                <option value="06:00 PM">06:00 PM</option>
+                            </select>
+                        </div>
+
+                        <!-- Visit Type -->
+                        <div class="form-group">
+                            <label>Visit Type <span style="color:var(--error-color)">*</span></label>
+                            <select id="bookingVisitType" required class="filter-input" style="width:100%; height:40px;">
+                                <option value="New Visit">New Visit</option>
+                                <option value="Follow-up">Follow-up</option>
+                            </select>
+                        </div>
+
+                        <!-- Token preview -->
+                        <div class="form-group" style="display:flex; flex-direction:column; justify-content:center;">
+                            <label>Assigned Token Preview</label>
+                            <span id="tokenPreview" style="font-size:1.2rem; font-weight:700; color:var(--primary-teal);"># Will preview...</span>
+                        </div>
+
+                        <!-- Chief Complaint -->
+                        <div class="form-group full-width">
+                            <label>Chief Complaint</label>
+                            <textarea id="bookingComplaint" class="filter-input" style="width:100%; height:60px; resize:none; padding:8px;" placeholder="Chief symptoms..."></textarea>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="padding-top:10px; border-top: 1px solid var(--border-color); margin-top: 10px;">
+                        <button type="button" class="btn-secondary" id="cancelBookingBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveBookingBtn">Save Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Consultation Modal (Out-of-Queue) -->
+    <div id="consultModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Start New Consultation</h2>
+                <button class="close-btn" id="closeConsultModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="consultStartForm">
+                    <div class="form-grid">
+                        
+                        <!-- Patient Search -->
+                        <div class="form-group full-width" style="position:relative;">
+                            <label>Search Patient <span style="color:var(--error-color)">*</span></label>
+                            <div class="search-bar" style="border:1px solid var(--border-color); border-radius:6px;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="consultPatientSearch" placeholder="Search by name, phone or ID..." style="width:100%; border:none; padding:10px 12px; outline:none;" autocomplete="off">
+                            </div>
+                            <div class="search-results-dropdown" id="consultPatientSearchResults"></div>
+                        </div>
+
+                        <!-- Selected Patient Details -->
+                        <div class="form-group full-width" id="selectedConsultPatientCard" style="display:none; background:#f0f9f7; border: 1px solid var(--primary-teal); border-radius:8px; padding:14px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <div>
+                                    <strong id="consultCardPatientName" style="color:var(--primary-navy);"></strong>
+                                    <span class="id-badge" id="consultCardPatientId" style="margin-left:8px;"></span>
+                                </div>
+                                <button type="button" id="clearConsultPatientBtn" style="background:none; border:none; color:var(--error-color); cursor:pointer; font-weight:600; font-size:0.8rem;"><i class="fa-solid fa-circle-xmark"></i> Reset</button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+                                <div><span style="color:#666;">Age/Gender:</span> <span id="consultCardAgeGender">—</span></div>
+                                <div><span style="color:#666;">Phone:</span> <span id="consultCardPhone">—</span></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="padding-top:10px; border-top: 1px solid var(--border-color); margin-top: 10px;">
+                        <button type="button" class="btn-secondary" id="cancelConsultBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="startConsultBtn" disabled style="background:#0D7A70; border-color:#0D7A70;"><i class="fa-solid fa-stethoscope"></i> Start Consultation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/calendar-sync.js?v=20261013b"></script>
+    <script src="js/doctor-dashboard.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

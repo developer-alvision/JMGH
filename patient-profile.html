@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Profile — Jyothsna Maternity Hospital</title>
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Modern Profile Specific Styles */
+        .profile-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        /* Section 1: Patient Header Card */
+        .patient-header-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            border-left: 6px solid var(--primary-teal);
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .patient-info-left {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .patient-name-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .patient-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+            margin: 0;
+        }
+        
+        .id-badge {
+            background-color: rgba(13, 122, 112, 0.1);
+            color: var(--primary-teal);
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(13, 122, 112, 0.2);
+        }
+        
+        .patient-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 8px;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+        
+        .meta-item i {
+            color: var(--primary-teal);
+            width: 18px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        
+        .meta-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .meta-value {
+            font-weight: 550;
+            color: var(--primary-navy);
+        }
+        
+        .patient-actions-right {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+            min-width: 200px;
+        }
+        
+        @media(max-width: 768px) {
+            .patient-actions-right {
+                align-items: flex-start;
+                width: 100%;
+            }
+        }
+        
+        .action-btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-action {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            text-decoration: none;
+            border: none;
+        }
+        
+        .btn-teal {
+            background-color: var(--primary-teal);
+            color: white;
+        }
+        .btn-teal:hover {
+            background-color: var(--primary-teal-hover);
+        }
+        
+        .btn-blue {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-blue:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .btn-red {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-red:hover {
+            background-color: #b91c1c;
+        }
+        
+        /* Section 2: Summary Stats Row */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card-custom {
+            background: white;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 4px solid var(--primary-teal);
+            transition: var(--transition);
+        }
+        
+        .stat-card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        .stat-card-custom.unpaid-card {
+            border-bottom-color: var(--error-color);
+        }
+        
+        .stat-icon-custom {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.3rem;
+            background-color: rgba(13, 122, 112, 0.08);
+            color: var(--primary-teal);
+        }
+        
+        .unpaid-card .stat-icon-custom {
+            background-color: rgba(220, 38, 38, 0.08);
+            color: var(--error-color);
+        }
+        
+        .stat-details-custom {
+            flex: 1;
+        }
+        
+        .stat-title-custom {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value-custom {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+            line-height: 1.2;
+        }
+        
+        .stat-subtext-custom {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        /* Section 3: Tabbed History Card */
+        .tabs-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+        
+        .tabs-header-bar {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .tab-btn {
+            padding: 15px 24px;
+            background: none;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .tab-btn:hover {
+            color: var(--primary-teal);
+            background-color: rgba(13, 122, 112, 0.02);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary-teal);
+            border-bottom-color: var(--primary-teal);
+            background-color: white;
+        }
+        
+        .tab-content {
+            padding: 24px;
+            min-height: 250px;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        /* Modals and Utilities */
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        
+        .btn-view-pdf {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        .btn-view-pdf:hover {
+            background-color: #e2e8f0;
+            color: var(--primary-navy);
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>Patient Profile</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="profile-container">
+                    
+                    <!-- Back navigation -->
+                    <div style="margin-bottom: -5px;">
+                        <a href="patients.html" style="color: var(--primary-teal); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-arrow-left"></i> Back to Patients List
+                        </a>
+                    </div>
+
+                    <!-- ABDM / ABHA linking. Hidden unless the integration is enabled. -->
+                    <div id="abhaPanel" style="display:none; margin-bottom:16px;"></div>
+
+                    <!-- SECTION 1: Patient Header Card -->
+                    <section class="patient-header-card" id="patientHeaderCard">
+                        <div class="patient-info-left" style="width: 100%;">
+                            <div class="patient-name-row">
+                                <h1 class="patient-name" id="pName">Loading Patient...</h1>
+                                <span class="id-badge" id="pIdBadge">MF-XXXX-XXXXX</span>
+                                <div id="pStatusBadge">
+                                    <span style="background:#f1f5f9; color:#64748b; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600;">OPD</span>
+                                </div>
+                            </div>
+                            
+                            <div class="patient-meta-grid">
+                                <!-- Age, Gender, Blood Group -->
+                                <div class="meta-item">
+                                    <i class="fa-solid fa-user-clock"></i>
+                                    <div>
+                                        <span class="meta-label">Demographics</span>
+                                        <span class="meta-value"><span id="pAge">—</span> Yrs • <span id="pGender">—</span> • <span id="pBlood">—</span></span>
+                                    </div>
+                                </div>
+                                <!-- Phone -->
+                                <div class="meta-item">
+                                    <i class="fa-solid fa-phone"></i>
+                                    <div>
+                                        <span class="meta-label">Contact Number</span>
+                                        <span class="meta-value" id="pPhone">—</span>
+                                    </div>
+                                </div>
+                                <!-- Assigned Doctor -->
+                                <div class="meta-item">
+                                    <i class="fa-solid fa-user-doctor"></i>
+                                    <div>
+                                        <span class="meta-label">Assigned Consultant</span>
+                                        <span class="meta-value"><span id="pDoctor">—</span> (<span id="pDept">—</span>)</span>
+                                    </div>
+                                </div>
+                                <!-- Emergency Contact -->
+                                <div class="meta-item">
+                                    <i class="fa-solid fa-suitcase-medical"></i>
+                                    <div>
+                                        <span class="meta-label">Emergency Contact</span>
+                                        <span class="meta-value" id="pEmergency">—</span>
+                                    </div>
+                                </div>
+                                <!-- Address (Span entire width or half) -->
+                                <div class="meta-item" style="grid-column: span 2;">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <div>
+                                        <span class="meta-label">Permanent Address</span>
+                                        <span class="meta-value" id="pAddress">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="patient-actions-right">
+                            <span class="meta-label" style="margin-bottom: 2px;">Quick Operations</span>
+                            <div class="action-btn-group">
+                                <a id="actionConsult" href="#" class="btn-action btn-teal"><i class="fa-solid fa-stethoscope"></i> Start Consultation</a>
+                                <a id="actionNewBill" href="#" class="btn-action btn-teal" style="background:#2563eb; color:white;"><i class="fa-solid fa-file-invoice-dollar"></i> New Bill</a>
+                                <a id="actionUploadReport" href="#" onclick="window.location.href='lab-reports.html?patientId=' + patientId + '&autoOpen=true'" class="btn-action btn-secondary" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155;"><i class="fa-solid fa-upload"></i> Upload Report</a>
+                                <button id="actionAdmitIPD" class="btn-action btn-blue" style="display:none;"><i class="fa-solid fa-bed"></i> Admit to IPD</button>
+                                <button id="actionMoveER" class="btn-action btn-red" style="display:none;"><i class="fa-solid fa-truck-medical"></i> Move to ER</button>
+                                <button id="actionDeliveryRecord" class="btn-action btn-teal" style="display:none;"><i class="fa-solid fa-baby-carriage"></i> Delivery Record</button>
+                                <a id="actionDischarge" href="#" class="btn-action btn-secondary" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;"><i class="fa-solid fa-file-medical"></i> Discharge</a>
+                                <a id="actionPartograph" href="#" class="btn-action btn-secondary" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;display:none;"><i class="fa-solid fa-chart-line"></i> Partograph</a>
+                                <button id="actionPortalPin" class="btn-action btn-secondary" style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;"><i class="fa-solid fa-key"></i> Portal PIN</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 2: Summary Stats Row -->
+                    <section class="stats-grid">
+                        <!-- Stat 1: Total Bills -->
+                        <div class="stat-card-custom">
+                            <div class="stat-icon-custom"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="stat-details-custom">
+                                <div class="stat-title-custom">Total Bills</div>
+                                <div class="stat-value-custom" id="statBillsCount">0</div>
+                                <div class="stat-subtext-custom" id="statBillsAmount">₹0.00 total billed</div>
+                            </div>
+                        </div>
+                        <!-- Stat 2: Outstanding Dues -->
+                        <div class="stat-card-custom unpaid-card">
+                            <div class="stat-icon-custom"><i class="fa-solid fa-circle-exclamation"></i></div>
+                            <div class="stat-details-custom">
+                                <div class="stat-title-custom" style="color:var(--error-color)">Outstanding Dues</div>
+                                <div class="stat-value-custom" id="statUnpaidAmount" style="color:var(--error-color)">₹0.00</div>
+                                <div class="stat-subtext-custom" id="statUnpaidCount">0 pending payments</div>
+                            </div>
+                        </div>
+                        <!-- Stat 3: Lab Reports -->
+                        <div class="stat-card-custom">
+                            <div class="stat-icon-custom"><i class="fa-solid fa-flask"></i></div>
+                            <div class="stat-details-custom">
+                                <div class="stat-title-custom">Lab Reports</div>
+                                <div class="stat-value-custom" id="statLabCount">0</div>
+                                <div class="stat-subtext-custom">Diagnostic studies</div>
+                            </div>
+                        </div>
+                        <!-- Stat 4: Medicines Dispensed -->
+                        <div class="stat-card-custom">
+                            <div class="stat-icon-custom"><i class="fa-solid fa-pills"></i></div>
+                            <div class="stat-details-custom">
+                                <div class="stat-title-custom">Medicines Dispensed</div>
+                                <div class="stat-value-custom" id="statMedsCount">0</div>
+                                <div class="stat-subtext-custom">Prescriptions fulfilled</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 3: Tabbed History Board -->
+                    <section class="tabs-card">
+                        <div class="tabs-header-bar" id="profileTabs">
+                            <button class="tab-btn active" data-tab="tab-visits"><i class="fa-solid fa-calendar-check"></i> Visits & Bills</button>
+                            <button class="tab-btn" data-tab="tab-labs"><i class="fa-solid fa-flask-vial"></i> Lab Reports</button>
+                            <button class="tab-btn" data-tab="tab-imaging"><i class="fa-solid fa-x-ray"></i> Imaging</button>
+                            <button class="tab-btn" data-tab="tab-medicines"><i class="fa-solid fa-capsules"></i> Medicines</button>
+                            <button class="tab-btn" data-tab="tab-admissions"><i class="fa-solid fa-bed-pulse"></i> Admissions</button>
+                            <button class="tab-btn" id="ancTabButton" data-tab="tab-anc" style="display:none;"><i class="fa-solid fa-baby"></i> Antenatal Care</button>
+                            <button class="tab-btn" id="babiesTabButton" data-tab="tab-babies" style="display:none;"><i class="fa-solid fa-baby"></i> Newborns</button>
+                        </div>
+                        
+                        <div class="tab-content">
+                            <!-- Tab 1: Visits & Bills -->
+                            <div class="tab-pane active" id="tab-visits">
+                                <div style="display: flex; justify-content: flex-end; margin-bottom: 12px; gap: 8px;">
+                                    <button class="btn-primary" id="btnProfileConsolidatedBill" onclick="window.generateConsolidatedBillPDF(window.patientId)" style="background:#0F2B5B; border-color:#0F2B5B; padding:6px 14px; font-size:0.85rem; display:flex; align-items:center; gap:6px; cursor:pointer;"><i class="fa-solid fa-file-invoice-dollar"></i> Print Consolidated Statement</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Bill No</th>
+                                                <th>Type</th>
+                                                <th>Amount</th>
+                                                <th>Payment Status</th>
+                                                <th>Report Status</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyVisits">
+                                            <tr><td colspan="7" style="text-align:center;padding:20px;">Loading visits history...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Lab Reports -->
+                            <div class="tab-pane" id="tab-labs">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Report ID</th>
+                                                <th>Test Name</th>
+                                                <th>Referred By</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Billing Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyLabs">
+                                            <tr><td colspan="7" style="text-align:center;padding:20px;">Loading lab reports...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Imaging -->
+                            <div class="tab-pane" id="tab-imaging">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Report ID</th>
+                                                <th>Type</th>
+                                                <th>Doctor</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyImaging">
+                                            <tr><td colspan="6" style="text-align:center;padding:20px;">Loading imaging studies...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: Medicines -->
+                            <div class="tab-pane" id="tab-medicines">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Medicine Name</th>
+                                                <th>Quantity</th>
+                                                <th>Amount</th>
+                                                <th>Prescribed By</th>
+                                                <th>Dispensed By</th>
+                                                <th>Payment</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMedicines">
+                                            <tr><td colspan="7" style="text-align:center;padding:20px;">Loading dispensing history...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Tab 5: Admissions -->
+                            <div class="tab-pane" id="tab-admissions">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Admission ID</th>
+                                                <th>Ward</th>
+                                                <th>Bed</th>
+                                                <th>Doctor</th>
+                                                <th>Admission Date</th>
+                                                <th>Discharge Date</th>
+                                                <th>Status</th>
+                                                <th>Daily Rate</th>
+                                                <th>Notes / Update</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyAdmissions">
+                                            <tr><td colspan="9" style="text-align:center;padding:20px;">Loading admissions log...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="tab-anc">
+                                <div id="ancSummary"></div>
+                                <div class="card" style="margin:20px 0;">
+                                    <div class="card-header"><h3 class="card-title">Add ANC Visit</h3><button class="btn-secondary" type="button" onclick="generateANCCardPDF(patientId)"><i class="fa-solid fa-file-pdf"></i> Print ANC Card</button></div>
+                                    <div class="modal-body"><form id="ancVisitForm"><div class="form-grid">
+                                        <div class="form-group"><label>Visit date</label><input type="date" id="ancVisitDate" required></div><div class="form-group"><label>Gestational weeks</label><input type="number" id="ancGestationalWeeks" min="0" max="45" required></div>
+                                        <div class="form-group"><label>Weight (kg)</label><input type="number" id="ancWeight" step="0.1"></div><div class="form-group"><label>BP systolic</label><input type="number" id="ancBpSystolic"></div>
+                                        <div class="form-group"><label>BP diastolic</label><input type="number" id="ancBpDiastolic"></div><div class="form-group"><label>Fundal height (cm)</label><input type="number" id="ancFundalHeight" step="0.1"></div>
+                                        <div class="form-group"><label>Fetal heart rate (bpm)</label><input type="number" id="ancFetalHeartRate"></div><div class="form-group"><label>Hb (g/dL)</label><input type="number" id="ancHb" step="0.1"></div>
+                                        <div class="form-group"><label>Urine albumin</label><input type="text" id="ancUrineAlbumin"></div><div class="form-group"><label>Next visit date</label><input type="date" id="ancNextVisitDate"></div>
+                                        <div class="form-group full-width"><label>Complaints</label><textarea id="ancComplaints"></textarea></div><div class="form-group full-width"><label>Advice</label><textarea id="ancAdvice"></textarea></div>
+                                    </div><div class="modal-footer"><button class="btn-primary" type="submit">Save ANC Visit</button></div></form></div>
+                                </div>
+                                <div class="form-grid" style="margin-bottom:20px;"><div class="card"><div class="card-header"><h3 class="card-title">Weight Trend</h3></div><div id="ancWeightChart"></div></div><div class="card"><div class="card-header"><h3 class="card-title">Blood Pressure Trend</h3></div><div id="ancBpChart"></div></div></div>
+                                <div class="table-responsive"><table><thead><tr><th>Date</th><th>Weeks</th><th>Weight</th><th>BP</th><th>Fundal height</th><th>FHR</th><th>Hb</th><th>Urine albumin</th><th>Next visit</th></tr></thead><tbody id="tbodyAncVisits"></tbody></table></div>
+                            </div>
+                            <div class="tab-pane" id="tab-babies"><div id="babiesList"></div></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="deliveryModal" class="modal">
+        <div class="modal-content" style="max-width:850px;"><div class="modal-header"><h2>Delivery Record</h2><button class="close-btn" type="button" onclick="closeDeliveryModal()">&times;</button></div>
+        <div class="modal-body"><form id="deliveryForm"><div class="form-grid">
+            <div class="form-group"><label>Delivery date</label><input type="date" id="deliveryDate" required></div><div class="form-group"><label>Delivery time</label><input type="time" id="deliveryTime" required></div>
+            <div class="form-group"><label>Delivery type</label><select id="deliveryType" required><option value="Normal">Normal</option><option value="C-Section">C-Section</option><option value="Assisted">Assisted</option><option value="Instrumental">Instrumental</option></select></div><div class="form-group"><label>Gestational weeks at delivery</label><input type="number" id="deliveryWeeks" min="0" max="45" required></div>
+            <div class="form-group"><label>Conducted by</label><input type="text" id="deliveryDoctor" required></div><div class="form-group"><label>Place of delivery</label><input type="text" id="deliveryPlace" value="Jyothsna Maternity Hospital"></div>
+            <div class="form-group"><label>Mother's condition</label><input type="text" id="motherCondition"></div><div class="form-group"><label>Blood loss (ml)</label><input type="number" id="deliveryBloodLoss" min="0"></div>
+            <div class="form-group full-width"><label>Complications</label><textarea id="deliveryComplications"></textarea></div><div class="form-group full-width"><label>Notes</label><textarea id="deliveryNotes"></textarea></div>
+        </div><hr style="border:0;border-top:1px solid var(--border-color);margin:10px 0 20px;"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Newborns</h3><button class="btn-secondary" type="button" id="addBabyBtn"><i class="fa-solid fa-plus"></i> Add Baby</button></div><div id="deliveryBabies"></div><div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeDeliveryModal()">Cancel</button><button type="submit" class="btn-primary">Save Delivery & Newborns</button></div></form></div></div>
+    </div>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/patient-profile.js?v=20261013b"></script>
+    <script src="js/abha.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

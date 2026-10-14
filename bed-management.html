@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed Management — Jyothsna Maternity Hospital</title>
+    <meta name="description" content="Real-time hospital bed occupancy board. Assign, discharge and manage beds by ward.">
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .ward-filter-btn {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            padding: 7px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+        .ward-filter-btn.active {
+            background: var(--primary-navy);
+            color: white;
+            border-color: var(--primary-navy);
+        }
+        .ward-filter-btn:hover:not(.active) { background: #f1f5f9; }
+
+        .bed-card {
+            width: 130px;
+            min-height: 115px;
+            border-radius: 12px;
+            padding: 12px 11px;
+            cursor: pointer;
+            transition: transform 0.18s, box-shadow 0.18s;
+            position: relative;
+            user-select: none;
+        }
+        .bed-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.14) !important; }
+        .bed-card:active { transform: scale(0.97); }
+
+        .bed-status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .bed-patient-name {
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 108px;
+        }
+
+        .bed-action-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 9px 14px;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            transition: opacity 0.15s;
+        }
+        .bed-action-btn:hover { opacity: 0.88; }
+
+        .stat-pill {
+            background: white;
+            border-radius: 10px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+
+        @keyframes bedSlideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .bed-modal-inner { animation: bedSlideUp 0.2s ease; }
+
+        .ward-section-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0F2B5B;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar (built by helpers.js buildSidebar) -->
+    <aside class="sidebar">
+        <div class="sidebar-header"><i class="fa-solid fa-hospital-user"></i> Jyothsna</div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-wrapper">
+        <!-- Navbar -->
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+            <div class="nav-title"><h2>Bed Management</h2></div>
+            <div class="nav-user">
+                <span class="user-info" id="userEmail">Loading...</span>
+                <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <!-- Page header -->
+            <div class="page-header" style="margin-bottom:20px;">
+                <div>
+                    <h1 style="font-size:1.05rem;font-weight:700;color:#0F2B5B;margin:0;">
+                        <i class="fa-solid fa-bed-pulse" style="margin-right:8px;color:#0D7A70;"></i>Real-Time Bed Board
+                    </h1>
+                    <p style="font-size:12px;color:#64748b;margin:3px 0 0 0;">Click any bed to assign, discharge, or change status.</p>
+                </div>
+                <button id="addBedBtn" class="btn-primary" style="display:flex;align-items:center;gap:7px;">
+                    <i class="fa-solid fa-plus"></i> Add New Bed
+                </button>
+            </div>
+
+            <!-- Summary pills -->
+            <div id="bedSummaryBar" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+            <!-- Ward filter buttons -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;" id="wardFilterBar">
+                <button class="ward-filter-btn active" data-ward="All">All Wards</button>
+                <button class="ward-filter-btn" data-ward="General Ward">General Ward</button>
+                <button class="ward-filter-btn" data-ward="Semi-Private">Semi-Private</button>
+                <button class="ward-filter-btn" data-ward="Private">Private</button>
+                <button class="ward-filter-btn" data-ward="Deluxe">Deluxe</button>
+                <button class="ward-filter-btn" data-ward="ICU">ICU</button>
+                <button class="ward-filter-btn" data-ward="Emergency">Emergency</button>
+                <button class="ward-filter-btn" data-ward="Postnatal Ward">Postnatal</button>
+                <button class="ward-filter-btn" data-ward="Labour Room">Labour Room</button>
+                <button class="ward-filter-btn" data-ward="Operation Theatre">OT</button>
+            </div>
+            <!-- Status filter -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="statusFilterBar">
+                <button class="ward-filter-btn status-filter-btn active" data-status="All">All Status</button>
+                <button class="ward-filter-btn status-filter-btn" data-status="available">Available</button>
+                <button class="ward-filter-btn status-filter-btn" data-status="occupied">Occupied</button>
+                <button class="ward-filter-btn status-filter-btn" data-status="cleaning">Cleaning</button>
+                <button class="ward-filter-btn status-filter-btn" data-status="reserved">Reserved</button>
+            </div>
+
+            <!-- Bed grid -->
+            <div class="card" style="padding:24px;" id="bedGridCard">
+                <div id="bedGrid">
+                    <div style="text-align:center;padding:50px;color:#888;">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Loading beds...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ========== ADD BED MODAL ========== -->
+<div id="addBedModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99990;align-items:center;justify-content:center;">
+    <div class="bed-modal-inner" style="background:white;width:90%;max-width:480px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+            <h3 style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"><i class="fa-solid fa-bed" style="color:#0D7A70;margin-right:8px;"></i>Add New Bed</h3>
+            <button onclick="closeModal('addBedModal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="form-group" style="margin:0;">
+                <label>Bed Number <span style="color:red;">*</span></label>
+                <input type="text" id="newBedNumber" placeholder="e.g. A-111" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Ward <span style="color:red;">*</span></label>
+                <select id="newBedWard" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                    <option value="">Select Ward</option>
+                    <option>General Ward</option>
+                    <option>Semi-Private</option>
+                    <option>Private</option>
+                    <option>Deluxe</option>
+                    <option>ICU</option>
+                    <option>Emergency</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Daily Rate (₹) <span style="color:red;">*</span></label>
+                <input type="number" id="newBedRate" placeholder="e.g. 1000" min="0" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Notes</label>
+                <textarea id="newBedNotes" rows="2" placeholder="Any special notes about this bed..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:15px;">
+            <button class="btn-secondary" onclick="closeModal('addBedModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveNewBed()"><i class="fa-solid fa-save"></i> Save Bed</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== EDIT BED MODAL ========== -->
+<div id="editBedModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99990;align-items:center;justify-content:center;">
+    <div class="bed-modal-inner" style="background:white;width:90%;max-width:480px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+            <h3 style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"><i class="fa-solid fa-pen-to-square" style="color:#0D7A70;margin-right:8px;"></i>Edit Bed</h3>
+            <button onclick="closeModal('editBedModal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <input type="hidden" id="editBedDocId">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="form-group" style="margin:0;">
+                <label>Bed Number <span style="color:red;">*</span></label>
+                <input type="text" id="editBedNumber" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Ward <span style="color:red;">*</span></label>
+                <select id="editBedWard" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                    <option>General Ward</option>
+                    <option>Semi-Private</option>
+                    <option>Private</option>
+                    <option>Deluxe</option>
+                    <option>ICU</option>
+                    <option>Emergency</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Daily Rate (₹) <span style="color:red;">*</span></label>
+                <input type="number" id="editBedRate" min="0" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Notes</label>
+                <textarea id="editBedNotes" rows="2" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:15px;">
+            <button class="btn-secondary" onclick="closeModal('editBedModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveEditBed()"><i class="fa-solid fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== BED ACTION MODAL ========== -->
+<div id="bedActionModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99990;align-items:center;justify-content:center;">
+    <div class="bed-modal-inner" style="background:white;width:90%;max-width:500px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+            <h3 id="bedModalTitle" style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"></h3>
+            <button onclick="closeModal('bedActionModal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <div id="bedModalBody"></div>
+        <div id="bedModalFooter" style="display:flex;flex-direction:column;gap:8px;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px;"></div>
+    </div>
+</div>
+
+<!-- ========== ASSIGN PATIENT MODAL ========== -->
+<div id="assignPatientModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99991;align-items:center;justify-content:center;">
+    <div class="bed-modal-inner" style="background:white;width:90%;max-width:480px;border-radius:14px;padding:26px;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+            <h3 style="margin:0;font-size:16px;font-weight:700;color:#0F2B5B;"><i class="fa-solid fa-user-plus" style="color:#0D7A70;margin-right:8px;"></i>Assign Patient to Bed</h3>
+            <button onclick="closeModal('assignPatientModal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <input type="hidden" id="assignBedDocId">
+        <div id="assignBedInfo" style="background:#f0f9f7;border:1px solid #0D7A70;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="form-group" style="margin:0;">
+                <label>Search Patient (name, ID, or phone)</label>
+                <input type="text" id="assignPatientSearch" placeholder="Type to search..." oninput="searchPatientForBed(this.value)" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                <div id="assignPatientDropdown" style="display:none;background:white;border:1px solid #ddd;border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.12);margin-top:4px;"></div>
+            </div>
+            <div id="assignSelectedPatientCard" style="display:none;background:#f0f9f7;border:1px solid #0D7A70;border-radius:8px;padding:10px 14px;font-size:13px;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Admission Date</label>
+                    <input type="date" id="assignAdmissionDate" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Expected Discharge</label>
+                    <input type="date" id="assignExpectedDischarge" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;outline:none;font-size:13px;">
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:15px;">
+            <button class="btn-secondary" onclick="closeModal('assignPatientModal')">Cancel</button>
+            <button class="btn-primary" onclick="confirmAssignPatient()" style="background:#0D7A70;border-color:#0D7A70;"><i class="fa-solid fa-check"></i> Confirm Assignment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/bed-management.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

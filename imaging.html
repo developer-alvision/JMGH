@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imaging Reports — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2>Imaging Reports</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <h2>Manage Imaging Reports</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button id="exportImagingBtn" class="btn-secondary" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                        <button id="uploadReportBtn" class="btn-primary"><i class="fa-solid fa-upload"></i> Upload Report</button>
+                    </div>
+                </div>
+
+                <!-- Pending Imaging Work (From Bills) (CHANGE 2) -->
+                <div id="pendingLabWorkContainer" class="card classic-panel" style="display: none; margin-bottom: 24px;">
+                    <div class="card-header classic-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-x-ray"></i> Pending Imaging Work (After Billing)
+                        </h3>
+                        <span id="pendingLabCount" class="classic-count">0 pending</span>
+                    </div>
+                    <div class="table-responsive" style="padding: 10px;">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Queue Pos</th>
+                                    <th>Bill Number</th>
+                                    <th>Patient Name</th>
+                                    <th>Doctor</th>
+                                    <th>Scans Needed</th>
+                                    <th>Notes</th>
+                                    <th>Date Ordered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingLabBody">
+                                <tr><td colspan="8" style="text-align: center; color: #888; padding: 20px;">No pending imaging work.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pending Report Requests (Lab Staff/Admin only) -->
+                <div id="pendingRequestsContainer" class="card classic-panel" style="display: none; margin-bottom: 24px;">
+                    <div class="card-header classic-panel-header">
+                        <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Doctor Orders Awaiting Billing
+                        </h3>
+                    </div>
+                    <div class="table-responsive" style="padding: 10px;">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Scan Name</th>
+                                    <th>Linked Bill ID</th>
+                                    <th>Date Ordered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingRequestsTableBody">
+                                <tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">No pending requests.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Filter Bar (Part 8) -->
+                <div class="card" style="margin-bottom: 20px; padding: 15px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Patient / ID Search</label>
+                            <div style="position: relative;">
+                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 12px; color: #888;"></i>
+                                <input type="text" id="filterPatient" placeholder="Search Patient..." style="padding-left: 30px; width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px;">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Status</label>
+                            <select id="filterStatus" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                                <option value="All">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="ready">Ready</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;" id="billingFilterGroup">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Billing Status</label>
+                            <select id="filterBilling" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                                <option value="All">All Billing</option>
+                                <option value="unbilled">Unbilled</option>
+                                <option value="billed">Billed</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Due">Due</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">From Date</label>
+                            <input type="date" id="filterFromDate" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">To Date</label>
+                            <input type="date" id="filterToDate" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btnApplyFilters" class="btn-primary" style="flex: 1; height: 38px; padding: 0 10px;"><i class="fa-solid fa-filter"></i> Filter</button>
+                            <button id="btnClearFilters" class="btn-secondary" style="flex: 1; height: 38px; padding: 0 10px;"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666; font-weight: 500;">
+                        <span id="reportsCountLabel">Showing 0 reports</span>
+                    </div>
+                </div>
+
+                <!-- Reports Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Report ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Type</th>
+                                    <th>Scan Name</th>
+                                    <th class="billing-col">Amount</th>
+                                    <th>Date</th>
+                                    <th class="billing-col">Billing Status</th>
+                                    <th>Status</th>
+                                    <th>WhatsApp</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <tr><td colspan="11" style="text-align: center; padding: 20px;">Loading reports...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- View Imaging Report Modal -->
+    <div id="viewImgModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; width:95%;">
+            <div class="modal-header">
+                <h2>Imaging Report Details</h2>
+                <button class="close-btn" id="closeViewImgModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;width:140px;">Report ID</td><td style="padding:10px;font-weight:600;" id="viewImgReportId">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Patient</td><td style="padding:10px;" id="viewImgPatient">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Imaging Type</td><td style="padding:10px;font-weight:600;" id="viewImgType">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Test Name</td><td style="padding:10px;" id="viewImgTest">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;vertical-align:top;">Individual Scans</td><td style="padding:10px;" id="viewImgTestsList">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Referred By</td><td style="padding:10px;" id="viewImgReferred">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Doctor</td><td style="padding:10px;" id="viewImgDoctor">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Date</td><td style="padding:10px;" id="viewImgDate">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Status</td><td style="padding:10px;" id="viewImgStatus">-</td></tr>
+                    <tr><td style="padding:10px;color:#888;vertical-align:top;">Notes</td><td style="padding:10px;" id="viewImgNotes">-</td></tr>
+                </table>
+            </div>
+            <div class="modal-footer" style="padding:20px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;" id="viewImgModalFooter">
+                <button type="button" class="btn-primary" id="viewImgPdfBtn" style="display:none;"><i class="fa-solid fa-file-pdf"></i> View PDF</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('viewImgModal').classList.remove('active')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Report Modal -->
+    <div id="uploadReportModal" class="modal">
+        <div class="modal-content" style="max-width:600px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden;">
+            <div class="modal-header" style="padding:20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="margin:0; font-size:1.2rem; color:var(--primary-navy);">Upload Imaging Report</h2>
+                <button type="button" class="close-btn" id="closeUploadModalBtn" style="background:none; border:none; cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px; overflow-y:auto; flex:1;">
+                <form id="uploadReportForm">
+                    <!-- Standard Patient Search -->
+                    <div style="position:relative; margin-bottom: 20px;">
+                        <label style="font-size:11px;color:#666;font-weight:500;display:block;margin-bottom:6px;">PATIENT</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" id="img_patientSearchInput" placeholder="Type name, phone or Patient ID then press Enter or click Search" style="flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;" onkeyup="if(event.key==='Enter'){searchPatient_img(this.value)}">
+                            <button type="button" onclick="searchPatient_img(document.getElementById('img_patientSearchInput').value)" style="padding:12px 20px;background:#0D7A70;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+                                <i class="fa-solid fa-magnifying-glass"></i> Search
+                            </button>
+                        </div>
+                        <div id="img_patientSearchResults" style="display:none;position:absolute;top:100%;left:0;width:100%;background:white;border:1px solid #ddd;border-radius:8px;max-height:250px;overflow-y:auto;z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,0.15);margin-top:4px;"></div>
+                    </div>
+                    <div id="img_selectedPatientCard" style="display:none;background:#f0f9f7;border:1px solid #0D7A70;border-radius:8px;padding:16px;margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <div>
+                                <strong id="img_cardPatientName" style="color:#0F2B5B;font-size:15px;"></strong>
+                                <span style="color:#666;margin-left:8px;font-size:13px;" id="img_cardPatientId"></span>
+                            </div>
+                            <button type="button" onclick="clearPatient_img()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;">✕ Change Patient</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">AGE / GENDER</label>
+                                <div id="img_cardAgeGender" style="font-size:13px;color:#333;margin-top:2px;">—</div>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">DOCTOR FOR THIS VISIT</label>
+                                <select id="img_doctorSelect" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:2px;">
+                                    <option value="">Select Doctor</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">DEPARTMENT</label>
+                                <select id="img_deptSelect" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:2px;">
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px;font-size:11px;color:#0D7A70;">
+                            <i class="fa-solid fa-circle-info"></i> You can change doctor and department for this visit. Patient registration remains unchanged.
+                        </div>
+                    </div>
+
+                    <!-- Report Details -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="imgType" required>
+                                <option value="X-Ray">X-Ray</option>
+                                <option value="CT Scan">CT Scan</option>
+                                <option value="MRI">MRI</option>
+                                <option value="Ultrasound">Ultrasound (General)</option>
+                                <option value="Obstetric USG">Obstetric USG / Dating</option>
+                                <option value="Anomaly Scan">Anomaly Scan (TIFFA)</option>
+                                <option value="NT Scan">NT / First Trimester Scan</option>
+                                <option value="Growth Scan">Growth / Biometry USG</option>
+                                <option value="Doppler USG">Obstetric Doppler</option>
+                                <option value="2D Echo">2D Echo (Echocardiography)</option>
+                                <option value="Fetal Echo">Fetal Echo</option>
+                                <option value="Pelvic USG">Pelvic Ultrasound</option>
+                                <option value="Breast USG">Breast Ultrasound</option>
+                                <option value="CTG">CTG (Cardiotocography)</option>
+                                <option value="ECG">ECG</option>
+                                <option value="Mammography">Mammography</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Referred By Doctor</label>
+                            <select id="imgReferredBy" required>
+                                <option value="">Select Doctor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Notes from reception (CHANGE 3) -->
+                    <div id="imgNotesFromReception" style="display:none; background:#fff8e1; border:1px solid #ffe082; color:#b78103; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; font-weight:500;"></div>
+                    <!-- Single Test vs Panel Mode Toggle -->
+                    <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                        <button type="button" id="btnSingleTestMode" class="btn-primary" style="flex:1; justify-content:center;">Single Scan</button>
+                        <button type="button" id="btnPanelMode" class="btn-secondary" style="flex:1; justify-content:center; background:#f1f5f9; color:#334155; border-color:#cbd5e1;">Panel or Multiple</button>
+                    </div>
+                    <input type="hidden" id="imgUploadMode" value="single">
+
+                    <!-- Single Test Input Fields -->
+                    <div id="singleTestFields" style="margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Scan Name <span style="color:var(--error-color)">*</span></label>
+                            <input type="text" id="imgTestName" required>
+                        </div>
+                        <div class="form-group lab-amount-group">
+                            <label>Amount (₹) <span style="color:var(--error-color)">*</span></label>
+                            <input type="number" id="imgTestAmount" min="0" value="0" style="padding:10px 15px; border:1px solid var(--border-color); border-radius:6px; width:100%;">
+                        </div>
+                    </div>
+
+                    <!-- Panel / Multiple Fields -->
+                    <div id="panelFields" style="margin-bottom: 15px; display:none;">
+                        <div class="form-group">
+                            <label>Panel/Profile Name <span style="color:var(--error-color)">*</span></label>
+                            <input type="text" id="imgPanelName" placeholder="e.g. Full Spine Series">
+                        </div>
+                        <label style="font-size:11px;color:#666;font-weight:500;display:block;margin-bottom:6px;">SCANS IN THIS PANEL</label>
+                        <div id="panelRowsContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+                        <button type="button" id="btnAddPanelRow" class="btn-secondary" style="padding:6px 12px; font-size:0.85rem; margin-top:10px;"><i class="fa-solid fa-plus"></i> Add Another Scan</button>
+                        <div style="margin-top:15px; font-weight:600; text-align:right; color:var(--primary-navy);" class="lab-amount-group">Total Amount: ₹<span id="imgPanelTotalAmount">0.00</span></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Test Date</label>
+                            <input type="date" id="imgTestDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="imgStatus" required>
+                                <option value="pending">Pending</option>
+                                <option value="ready">Ready</option>
+                                <option value="delivered">Delivered</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- PACS identifiers — shown only when the Orthanc link is enabled -->
+                    <div id="pacsFieldsSection" style="display:none; margin-bottom:15px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px; padding:12px;">
+                        <label style="font-size:11px; color:#6d28d9; font-weight:700; display:block; margin-bottom:8px;">
+                            <i class="fa-solid fa-x-ray"></i> PACS / DICOM
+                        </label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:12px;">Accession number</label>
+                                <input type="text" id="imgAccessionNumber" placeholder="Generated automatically if left blank">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:12px;">Study Instance UID</label>
+                                <input type="text" id="imgStudyInstanceUID" placeholder="Paste from the modality / PACS">
+                            </div>
+                        </div>
+                        <small style="display:block; margin-top:8px; color:#7c3aed; font-size:11.5px;" id="pacsAeTitleHint">
+                            Images stay in the PACS; the HMS records only these identifiers and links to the viewer.
+                        </small>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Notes</label>
+                        <textarea id="imgNotes" rows="2"></textarea>
+                    </div>
+                    <!-- Scan Image and Report PDF uploads (PART 3) -->
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Scan Image (JPEG/PNG, max 20MB)</label>
+                        <input type="file" id="scanImageFile" accept="image/jpeg,image/png,image/jpg">
+                        <div id="imagePreview" style="display:none;margin-top:8px;">
+                            <img id="previewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #ddd;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:12px; margin-bottom: 15px;">
+                        <label>Radiologist Report PDF (max 10MB)</label>
+                        <input type="file" id="reportPdfFile" accept="application/pdf">
+                        <small style="color:#666; display:block; margin-top:2px;">Radiologist findings and interpretation</small>
+                    </div>
+                    <div id="imgUploadProgressContainer" style="display:none;margin-top:10px;">
+                        <div style="font-size:12px;color:#666;margin-bottom:4px;">Uploading files... <span id="imgUploadPct">0%</span></div>
+                        <div style="background:#eee;border-radius:4px;height:8px;overflow:hidden;"><div id="imgUploadProgress" style="width:0%;background:#0D7A70;height:100%;transition:width 0.3s;"></div></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="padding:20px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-secondary" id="cancelUploadBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="saveReportBtn">Save Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/pacs.js?v=20261013b"></script>
+    <script src="js/imaging.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

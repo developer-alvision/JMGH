@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard & Analytics — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .analytics-card {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
+        }
+        .analytics-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+        }
+        .card-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+        .card-header-flex h3 {
+            font-size: 16px;
+            color: var(--primary-navy);
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 10px 0 5px 0;
+        }
+        .stat-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        /* Custom Bar Chart styling */
+        .chart-container {
+            height: 250px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 20px 10px 10px 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-top: 15px;
+        }
+        .chart-bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            cursor: pointer;
+        }
+        .chart-bar {
+            width: 100%;
+            max-width: 45px;
+            background: linear-gradient(180deg, #10b981 0%, #0d7a70 100%);
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .chart-bar-wrapper:hover .chart-bar {
+            background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+            transform: scaleX(1.05);
+        }
+        .chart-bar .tooltip {
+            visibility: hidden;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 11px;
+            white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .chart-bar-wrapper:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+            bottom: calc(100% + 5px);
+        }
+        .chart-label {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+            text-align: center;
+        }
+        /* Custom styles */
+        .color-revenue { color: #10b981; }
+        .color-patients { color: #0d7a70; }
+        .color-dues { color: #f59e0b; }
+        .color-reports { color: #3b82f6; }
+        
+        .section-title-wrapper {
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-navy);
+            padding-left: 12px;
+        }
+        .section-title-wrapper h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary-navy);
+            font-weight: 700;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2>Owner Analytics & Dashboard</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="grid-4" id="ownerOpsStrip" style="margin-bottom:20px;">
+                    <div class="analytics-card"><div class="card-header-flex"><h3><i class="fa-solid fa-bed"></i> Census</h3></div><div class="stat-value" id="ownerCensus">—</div><div class="stat-desc">Admitted now</div></div>
+                    <div class="analytics-card"><div class="card-header-flex"><h3><i class="fa-solid fa-scissors"></i> OT today</h3></div><div class="stat-value" id="ownerOtToday">—</div><div class="stat-desc">Bookings scheduled</div></div>
+                    <div class="analytics-card"><div class="card-header-flex"><h3><i class="fa-solid fa-hand-holding-dollar"></i> Outstanding</h3></div><div class="stat-value" id="ownerOutstanding" style="font-size:1.6rem;">—</div><div class="stat-desc">Unpaid / partial dues</div></div>
+                    <div class="analytics-card"><div class="card-header-flex"><h3><i class="fa-solid fa-user-doctor"></i> Doctor revenue</h3></div><div class="stat-value" id="ownerDocRevCount" style="font-size:1.4rem;">—</div><div class="stat-desc" id="ownerDocRevHint">Top doctor this month</div></div>
+                </div>
+                <!-- SECTION 1 — Today at a Glance -->
+                <div class="section-title-wrapper">
+                    <h2>Today at a Glance</h2>
+                </div>
+                <div class="grid-4">
+                    <div class="analytics-card" style="border-top: 5px solid #10b981;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:600; color:#64748b; font-size:14px;">Today's Revenue</span>
+                            <i class="fa-solid fa-circle-dollar-to-slot color-revenue" style="font-size:1.4rem;"></i>
+                        </div>
+                        <div class="stat-value color-revenue" id="todayRevenue">₹0.00</div>
+                        <div class="stat-desc" id="todayRevenueSub">Based on daily collections</div>
+                    </div>
+                    <div class="analytics-card" style="border-top: 5px solid #0d7a70;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:600; color:#64748b; font-size:14px;">Today's Patients</span>
+                            <i class="fa-solid fa-user-injured color-patients" style="font-size:1.4rem;"></i>
+                        </div>
+                        <div class="stat-value color-patients" id="todayPatients">0</div>
+                        <div class="stat-desc">New patient registrations today</div>
+                    </div>
+                    <div class="analytics-card" style="border-top: 5px solid #f59e0b;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:600; color:#64748b; font-size:14px;">Outstanding Dues</span>
+                            <i class="fa-solid fa-triangle-exclamation color-dues" style="font-size:1.4rem;"></i>
+                        </div>
+                        <div class="stat-value color-dues" id="outstandingDues">₹0.00</div>
+                        <div class="stat-desc">Total unpaid/partial invoice balances</div>
+                    </div>
+                    <div class="analytics-card" style="border-top: 5px solid #3b82f6;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:600; color:#64748b; font-size:14px;">Pending Lab Reports</span>
+                            <i class="fa-solid fa-flask-vial color-reports" style="font-size:1.4rem;"></i>
+                        </div>
+                        <div class="stat-value color-reports" id="pendingLabReports">0</div>
+                        <div class="stat-desc">Awaiting technician uploads</div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2 — Revenue Chart & Outstanding Breakdown -->
+                <div class="grid-2">
+                    <!-- Section 2 Chart -->
+                    <div class="analytics-card">
+                        <div class="card-header-flex">
+                            <h3><i class="fa-solid fa-chart-bar" style="color:#0d7a70;"></i> Daily Collections (Last 7 Days)</h3>
+                            <button id="exportChartBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                        <div class="chart-container" id="revenueBarChart">
+                            <div style="width:100%; text-align:center; padding-top:100px; color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Rendering collections...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 5 Outstanding breakdown -->
+                    <div class="analytics-card">
+                        <div class="card-header-flex">
+                            <h3><i class="fa-solid fa-wallet" style="color:#f59e0b;"></i> Outstanding Dues Breakdown</h3>
+                            <button id="exportDuesBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                        <div class="table-responsive" style="margin-top:10px;">
+                            <table>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Unpaid Bills Total</strong></td>
+                                        <td id="duesUnpaid" style="text-align:right; font-weight:600; color:#dc2626;">₹0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Insurance / Scheme Pending</strong></td>
+                                        <td id="duesInsurance" style="text-align:right; font-weight:600; color:#3b82f6;">₹0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Admitted IPD Dues (Unpaid Balance)</strong></td>
+                                        <td id="duesAdmitted" style="text-align:right; font-weight:600; color:#f59e0b;">₹0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Oldest Unpaid Bill Date</strong></td>
+                                        <td id="oldestUnpaidDate" style="text-align:right; font-weight:600; color:#64748b;">—</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3 & 4 — Department Revenue and Doctor Performance -->
+                <div class="grid-2">
+                    <!-- Section 3 Department Revenue -->
+                    <div class="analytics-card">
+                        <div class="card-header-flex">
+                            <h3><i class="fa-solid fa-building-user" style="color:#0d7a70;"></i> Department Revenue (This Month)</h3>
+                            <button id="exportDeptBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Department</th>
+                                        <th>Patients</th>
+                                        <th>Revenue</th>
+                                        <th>% of Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deptRevenueTableBody">
+                                    <tr><td colspan="4" style="text-align:center; color:#888;">Loading department distributions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 4 Doctor Performance -->
+                    <div class="analytics-card">
+                        <div class="card-header-flex">
+                            <h3><i class="fa-solid fa-user-doctor" style="color:#10b981;"></i> Doctor Performance (This Month)</h3>
+                            <button id="exportDocBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Doctor</th>
+                                        <th>Patients Seen</th>
+                                        <th>Consultations</th>
+                                        <th>Revenue Generated</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorPerformanceTableBody">
+                                    <tr><td colspan="4" style="text-align:center; color:#888;">Loading doctor allocations...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pharmacy GRN & agency payments -->
+                <div class="analytics-card classic-panel" style="margin-bottom:30px;">
+                    <div class="card-header-flex">
+                        <h3><i class="fa-solid fa-pills"></i> Pharmacy GRN &amp; Agency Payments</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Medicine</th>
+                                    <th>Supplier</th>
+                                    <th>Qty</th>
+                                    <th>Amount</th>
+                                    <th>Payment Due</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ownerPharmacyGrnBody">
+                                <tr><td colspan="8" style="text-align:center;color:#888;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 6 — Audit Summary -->
+                <div class="analytics-card" style="margin-bottom:30px;">
+                    <div class="card-header-flex">
+                        <h3><i class="fa-solid fa-clipboard-check" style="color:#0f2b5b;"></i> Audit Summary & Access Logs</h3>
+                        <button id="exportAuditBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-download"></i> Export</button>
+                    </div>
+                    <div class="grid-4" style="gap:15px; margin-bottom:15px;">
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px; cursor:pointer;" onclick="openDiscountsModal()">
+                            <span style="font-size:12px; color:#64748b; font-weight:500;">Discounts Given Today</span>
+                            <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#f59e0b;" id="auditDiscountsCount">0 (₹0.00)</div>
+                        </div>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px; cursor:pointer;" onclick="openCancellationsModal()">
+                            <span style="font-size:12px; color:#64748b; font-weight:500;">Bills Cancelled Today</span>
+                            <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#dc2626;" id="auditCancelledCount">0 (₹0.00)</div>
+                        </div>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px; grid-column: span 2;">
+                            <span style="font-size:12px; color:#64748b; font-weight:500; display:block; margin-bottom:4px;">Today's Active Staff Logins</span>
+                            <div id="auditLoginsList" style="font-size:12px; color:#334155; line-height:1.4; max-height:55px; overflow-y:auto; font-family:monospace;">
+                                Awaiting audit streams...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancelled & refunded bills for the current month -->
+                <div class="analytics-card" style="margin-bottom:30px;">
+                    <div class="card-header-flex">
+                        <h3><i class="fa-solid fa-ban" style="color:#dc2626;"></i> Cancelled &amp; Refunded Bills — <span id="cancelledMonthLabel">this month</span></h3>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <span id="cancelledMonthSummary" style="font-size:12.5px; color:#64748b;"></span>
+                            <button id="exportCancelledBtn" class="btn-secondary btn-sm"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Bill No</th>
+                                    <th>Patient</th>
+                                    <th>Action</th>
+                                    <th class="num">Amount</th>
+                                    <th>Reason</th>
+                                    <th>By</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cancelledBillsBody">
+                                <tr><td colspan="7" class="table-empty">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 7 — Monthly Owner Reports -->
+                <div class="analytics-card" style="margin-bottom:30px;">
+                    <div class="card-header-flex" style="flex-wrap: wrap; gap: 10px;">
+                        <h3><i class="fa-solid fa-file-invoice" style="color:#0f2b5b;"></i> Monthly Performance & Owner Analytics</h3>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+                            <input type="month" id="reportMonth" class="form-control" style="padding: 6px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; font-weight:500;">
+                            <button id="btnGenerateMonthlyReport" class="btn-primary" style="padding: 6px 14px; font-size: 13px;"><i class="fa-solid fa-sync"></i> Load Report</button>
+                            <button id="btnDownloadMonthlyPDF" class="btn-secondary" style="padding: 6px 14px; font-size: 13px; border-color:#cbd5e1; background:#f8fafc;"><i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i> Download PDF</button>
+                        </div>
+                    </div>
+                    <div id="monthlyReportContent" style="display:none; margin-top:20px;">
+                        <!-- Comparison Banner -->
+                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:15px; border-radius:8px; display:flex; justify-content:space-around; margin-bottom:20px; font-size:14px; color:#166534; flex-wrap: wrap; gap: 10px;">
+                            <div><strong>Revenue vs Last Month:</strong> <span id="compRevenue">₹0.00 (0%)</span></div>
+                            <div><strong>Bills vs Last Month:</strong> <span id="compBills">0 (0%)</span></div>
+                            <div><strong>New Patients vs Last Month:</strong> <span id="compPatients">0 (0%)</span></div>
+                        </div>
+                        <div class="grid-4" style="gap:15px; margin-bottom:20px;">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+                                <span style="font-size:12px; color:#64748b; font-weight:500;">Total Monthly Revenue</span>
+                                <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#10b981;" id="monthlyTotalRev">₹0.00</div>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+                                <span style="font-size:12px; color:#64748b; font-weight:500;">Month End Outstanding Dues</span>
+                                <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#f59e0b;" id="monthlyOutstanding">₹0.00</div>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+                                <span style="font-size:12px; color:#64748b; font-weight:500;">New Patients Registered</span>
+                                <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#0d7a70;" id="monthlyNewPatients">0</div>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+                                <span style="font-size:12px; color:#64748b; font-weight:500;">Pharmacy Revenue</span>
+                                <div style="font-size:1.6rem; font-weight:700; margin-top:5px; color:#3b82f6;" id="monthlyPharmacyRev">₹0.00</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Extra stats like staff attendance -->
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px; font-size:13px; color:#334155; display:flex; justify-content:space-around; flex-wrap: wrap; gap: 10px;">
+                            <div><strong>Staff Avg Attendance %:</strong> <span id="monthlyAttendancePct" style="font-weight:600;">—</span></div>
+                            <div><strong>Total Bills Generated:</strong> <span id="monthlyTotalBillsCount" style="font-weight:600;">0</span></div>
+                        </div>
+
+                        <div class="grid-2">
+                            <!-- Revenue Breakdown by Bill Type & Payment Method -->
+                            <div class="analytics-card" style="box-shadow:none; border:1px solid #e2e8f0;">
+                                <h4 style="margin-top:0; color:var(--primary-navy); border-bottom:1px solid #eee; padding-bottom:8px;"><i class="fa-solid fa-list"></i> Revenue & Bills Breakdown</h4>
+                                <table style="font-size:13px;">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th style="text-align:right;">Count / Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="monthlyRevenueBreakdownBody">
+                                        <!-- Will populate dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Daily Revenue Chart for the month -->
+                            <div class="analytics-card" style="box-shadow:none; border:1px solid #e2e8f0;">
+                                <h4 style="margin-top:0; color:var(--primary-navy); border-bottom:1px solid #eee; padding-bottom:8px;"><i class="fa-solid fa-calendar-day"></i> Daily Revenue Trend</h4>
+                                <div class="chart-container" id="monthlyDailyRevenueChart" style="height:180px;">
+                                    <div style="width:100%; text-align:center; padding-top:70px; color:#888;">Select month and load report</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Discounts Modal (IMPROVEMENT 5) -->
+    <div id="discountsModal" class="modal" style="display:none;">
+        <div class="modal-content" style="background:white; width:90%; max-width:850px; margin:30px auto; border-radius:12px; padding:30px; position:relative; max-height:85vh; overflow-y:auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:1.2rem; color:var(--primary-navy); font-weight:600;"><i class="fa-solid fa-tags"></i> Discounts Given Today</h3>
+                <button class="close-btn" onclick="document.getElementById('discountsModal').style.display='none'" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#666;">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Bill No</th>
+                                <th>Patient Name</th>
+                                <th>Original Amount</th>
+                                <th>Discount %</th>
+                                <th>Discount Amount</th>
+                                <th>Approver Name</th>
+                                <th>Created By Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody id="discountsTableBody">
+                            <tr><td colspan="8" style="text-align:center; color:#888;">No discounts logged today.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #eee; padding-top:15px; margin-top:15px;">
+                <strong style="color:var(--primary-navy);">Total Discount Amount: <span id="discountsModalTotal">₹0.00</span></strong>
+                <button class="btn-secondary" onclick="document.getElementById('discountsModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellations Modal (IMPROVEMENT 5) -->
+    <div id="cancellationsModal" class="modal" style="display:none;">
+        <div class="modal-content" style="background:white; width:90%; max-width:850px; margin:30px auto; border-radius:12px; padding:30px; position:relative; max-height:85vh; overflow-y:auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:1.2rem; color:var(--primary-navy); font-weight:600;"><i class="fa-solid fa-ban"></i> Bills Cancelled Today</h3>
+                <button class="close-btn" onclick="document.getElementById('cancellationsModal').style.display='none'" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#666;">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Bill No</th>
+                                <th>Patient Name</th>
+                                <th>Bill Amount</th>
+                                <th>Cancellation Reason</th>
+                                <th>Cancelled By Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cancellationsTableBody">
+                            <tr><td colspan="6" style="text-align:center; color:#888;">No cancellations logged today.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #eee; padding-top:15px; margin-top:15px;">
+                <strong style="color:var(--primary-navy);">Total Cancelled Amount: <span id="cancellationsModalTotal">₹0.00</span></strong>
+                <button class="btn-secondary" onclick="document.getElementById('cancellationsModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/owner-dashboard.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

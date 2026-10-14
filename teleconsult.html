@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tele-consult — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar"><div class="sidebar-header">Jyothsna</div><nav class="sidebar-nav" id="sidebarNav"></nav></aside>
+    <main class="main-wrapper">
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;"><i class="fa-solid fa-bars"></i></button>
+            <div class="nav-title"><h2 data-i18n="Tele-consult">Tele-consult</h2></div>
+            <div class="nav-user"><span class="user-info" id="userEmail">Loading...</span><button id="logoutBtn" class="btn-logout">Logout</button></div>
+        </header>
+        <div class="page-content">
+            <div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                <p style="color:var(--text-muted);font-size:13px;margin:0;">Video visits via Jitsi (no account required). Create a room, share the link, then open consultation for e-prescription.</p>
+                <button class="btn-primary" type="button" id="tcCreateBtn"><i class="fa-solid fa-video"></i> Schedule tele-visit</button>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>When</th><th>Patient</th><th>Doctor</th><th>Status</th><th>Room</th><th></th></tr></thead>
+                        <tbody id="tcBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<div id="tcModal" class="modal">
+    <div class="modal-content" style="max-width:560px;">
+        <div class="modal-header"><h3>Schedule tele-visit (Google Meet)</h3><button class="close-btn" type="button" onclick="document.getElementById('tcModal').classList.remove('active')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="tcForm" class="modal-body">
+            <div class="form-group" style="position:relative;">
+                <label>Search patient</label>
+                <input id="tcPatientSearch" placeholder="Name / phone / ID" autocomplete="off" style="width:100%;">
+                <div id="tcPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:220px;overflow:auto;"></div>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="form-group"><label>Patient name</label><input id="tcPatientName" required></div>
+                <div class="form-group"><label>Patient ID</label><input id="tcPatientId" placeholder="SA-…"></div>
+                <div class="form-group"><label>WhatsApp / Phone</label><input id="tcPatientPhone" placeholder="10-digit mobile"></div>
+                <div class="form-group"><label>Doctor</label><select id="tcDoctor" required></select></div>
+                <div class="form-group"><label>Date</label><input type="date" id="tcDate" required></div>
+                <div class="form-group"><label>Time</label><input type="time" id="tcTime" required></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Purpose / reason</label><input id="tcReason" placeholder="ANC follow-up / report review / second opinion" required></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Google Meet link (paste hospital Meet URL)</label><input id="tcMeetLink" placeholder="https://meet.google.com/xxx-xxxx-xxx"></div>
+            </div>
+            <p style="font-size:12px;color:#64748b;">WhatsApp message includes date, doctor, purpose and Meet link.</p>
+            <div class="modal-footer"><button type="submit" class="btn-primary">Schedule &amp; share Meet</button></div>
+        </form>
+    </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/branch.js?v=20261013b"></script>
+<script src="js/i18n.js?v=20261013b"></script>
+<script src="js/teleconsult.js?v=20261013b"></script>
+</body>
+</html>

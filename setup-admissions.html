@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recreate Admissions Collection — Jyothsna Maternity Hospital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+    <style>
+        :root {
+            --primary-navy: #0F2B5B;
+            --primary-teal: #0D7A70;
+            --white: #FFFFFF;
+            --bg-color: #F8FAFC;
+            --border-color: #E2E8F0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: var(--white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(15, 43, 91, 0.05);
+            border: 1px solid var(--border-color);
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary-navy);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        p {
+            color: #64748B;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .btn-primary {
+            background-color: var(--primary-teal);
+            color: var(--white);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary:hover {
+            background-color: #0B6159;
+        }
+        #status {
+            margin-top: 24px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #F1F5F9;
+            color: #475569;
+            min-height: 20px;
+        }
+        .btn-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background-color: var(--primary-teal);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background-color 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <!-- FIX 6: Password check and internal-use-only warning -->
+    <script>
+        var _saPass = new URLSearchParams(window.location.search).get('confirm') || prompt('This tool writes directly to the database. Type CONFIRM to continue:');
+        if (_saPass !== 'CONFIRM') {
+            document.body.innerHTML = '<h2 style="text-align:center;margin-top:100px;color:red;font-family:sans-serif;">Access Denied. This page is for internal use only.</h2>';
+        }
+    </script>
+    <div style="background:#DC2626;color:white;text-align:center;padding:10px 20px;font-size:13px;font-weight:600;position:sticky;top:0;z-index:9999;">
+        &#9888; INTERNAL USE ONLY &mdash; Not for client access
+    </div>
+    <div class="container">
+        <i class="fa-solid fa-database" style="font-size: 3rem; color: var(--primary-teal); margin-bottom: 20px;"></i>
+        <h1>Recreate Admissions Collection</h1>
+        <p>Click the button below to initialize the <strong>admissions</strong> collection in your Firebase Firestore database with a placeholder document.</p>
+        
+        <button class="btn-primary" onclick="createAdmissionsCollection()">
+            <i class="fa-solid fa-circle-plus"></i> Create Admissions Collection
+        </button>
+        
+        <div id="status">Ready to initialize collection.</div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
+            <a href="dashboard.html" class="btn-dashboard" style="background-color: #0F2B5B;">
+                <i class="fa-solid fa-chart-pie"></i> Go to Dashboard
+            </a>
+            <a href="owner-dashboard.html" class="btn-dashboard" style="background-color: #0D7A70;">
+                <i class="fa-solid fa-chart-line"></i> Owner Analytics
+            </a>
+        </div>
+        <a href="index.html" style="display: block; text-align: center; margin-top: 15px; color: #64748B; font-size: 0.85rem; text-decoration: none; font-weight: 500;">
+            <i class="fa-solid fa-right-to-bracket"></i> Go to Login Screen
+        </a>
+    </div>
+
+    <!-- Firebase Compat SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/setup-admissions.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

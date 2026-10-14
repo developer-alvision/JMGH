@@ -1,0 +1,16 @@
+node_modules
+functions/node_modules
+.runtime
+.emulator-data
+.firebase
+.claude
+test-results
+tests
+functions/test
+dist
+*.zip
+*-debug.log*
+dev-emulators.log
+.env*
+functions/.secret.local
+*.service-account.json

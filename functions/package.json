@@ -1,0 +1,15 @@
+{
+  "name": "jyothsna-hms-functions",
+  "private": true,
+  "main": "core.cjs",
+  "engines": { "node": "22" },
+  "scripts": {
+    "test": "node --test test/backend.test.cjs",
+    "test:rules": "node --test test/firestore.rules.test.cjs"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.10.0",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.1"
+  }
+}

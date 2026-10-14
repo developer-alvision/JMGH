@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Now Serving — Jyothsna</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        html, body { margin:0; height:100%; background:#1a0b12; color:#fff; font-family:Inter,sans-serif; }
+        .wrap { min-height:100%; display:flex; flex-direction:column; padding:32px; box-sizing:border-box; }
+        .brand { font-size:1.2rem; letter-spacing:.08em; text-transform:uppercase; color:#F783AC; margin-bottom:24px; }
+        .grid { display:grid; grid-template-columns:1.2fr .8fr; gap:24px; flex:1; }
+        .now { background:linear-gradient(145deg,#A61E4D,#D6336C); border-radius:24px; padding:40px; display:flex; flex-direction:column; justify-content:center; }
+        .now label { font-size:1.1rem; opacity:.85; }
+        .now .token { font-size:clamp(4rem,12vw,8rem); font-weight:800; line-height:1; margin:12px 0; }
+        .now .name { font-size:clamp(1.4rem,3vw,2.2rem); font-weight:600; }
+        .side { background:rgba(255,255,255,.06); border-radius:24px; padding:28px; }
+        .side h2 { margin:0 0 16px; font-size:1.1rem; color:#F783AC; }
+        .wait-item { padding:14px 0; border-bottom:1px solid rgba(255,255,255,.08); display:flex; justify-content:space-between; font-size:1.25rem; }
+        .clock { margin-top:20px; opacity:.7; }
+        @media(max-width:800px){ .grid{grid-template-columns:1fr;} }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="brand" id="qdBrand">Jyothsna Maternity Hospital</div>
+    <div class="grid">
+        <div class="now">
+            <label>Now serving</label>
+            <div class="token" id="qdToken">—</div>
+            <div class="name" id="qdName">Waiting for next patient</div>
+            <div id="qdDoctor" style="margin-top:12px;opacity:.85;"></div>
+        </div>
+        <div class="side">
+            <h2>Up next</h2>
+            <div id="qdWaiting"></div>
+            <div class="clock" id="qdClock"></div>
+        </div>
+    </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script>
+// Project comes from js/firebase-config.js, loaded just above.
+const firebaseConfig = window.FIREBASE_CONFIG || {};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+function todayIso() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function qdEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+function tick() {
+    document.getElementById('qdClock').textContent = new Date().toLocaleString('en-IN');
+}
+setInterval(tick, 1000); tick();
+db.collection('publicHospital').doc('main').get().then(function(doc){
+    if (doc.exists && doc.data().hospitalName) document.getElementById('qdBrand').textContent = doc.data().hospitalName;
+});
+// The TV in the OP corridor is never reloaded, so the query has to be
+// rebuilt when the date rolls over — otherwise it shows yesterday's queue
+// from midnight onwards.
+var qdUnsub = null, qdDate = null;
+function qdSubscribe() {
+    var today = todayIso();
+    if (today === qdDate) return;
+    qdDate = today;
+    if (qdUnsub) qdUnsub();
+    qdUnsub = qdListen(today);
+}
+setInterval(qdSubscribe, 60000);
+
+function qdListen(dateKey) {
+return db.collection('publicQueue').where('date','==', dateKey).onSnapshot(function(snap){
+    var tokens = [];
+    snap.forEach(function(doc){ tokens.push(doc.data()); });
+    tokens.sort(function(a,b){ return (a.tokenNo||0)-(b.tokenNo||0); });
+    var serving = tokens.filter(function(t){ return t.status==='serving'; });
+    var waiting = tokens.filter(function(t){ return t.status==='waiting'; }).slice(0,8);
+    if (serving.length) {
+        document.getElementById('qdToken').textContent = 'T-' + serving[0].tokenNo;
+        document.getElementById('qdName').textContent = 'Please proceed to consultation';
+        document.getElementById('qdDoctor').textContent = serving[0].doctorName ? ('Dr / ' + serving[0].doctorName) : '';
+    } else {
+        document.getElementById('qdToken').textContent = '—';
+        document.getElementById('qdName').textContent = 'Waiting for next patient';
+        document.getElementById('qdDoctor').textContent = '';
+    }
+    document.getElementById('qdWaiting').innerHTML = waiting.length
+        ? waiting.map(function(t){ return '<div class="wait-item"><span>T-' + qdEsc(t.tokenNo) + '</span><span>' + qdEsc(t.doctorName||'') + '</span></div>'; }).join('')
+        : '<div style="opacity:.6;">No patients waiting</div>';
+});
+}
+qdSubscribe();
+</script>
+</body>
+</html>

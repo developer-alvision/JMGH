@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Collections — Jyothsna Maternity Hospital</title>
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .summary-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .summary-card {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        .summary-card h3 {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0 0 6px 0;
+            font-weight: 500;
+        }
+        .summary-card .value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+        }
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .filter-btn {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .filter-btn.active {
+            background: var(--primary-navy);
+            color: var(--white);
+            border-color: var(--primary-navy);
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2 id="pageDateTitle">Today's Collections</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <!-- Summary bar -->
+                <div class="summary-bar">
+                    <div class="summary-card" style="border-top: 4px solid #10b981; grid-column: span 2;">
+                        <h3>Total Collected Today</h3>
+                        <div class="value" id="todayTotal" style="color: #10b981; font-size: 1.8rem;">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #0f2b5b;">
+                        <h3>Cash</h3>
+                        <div class="value" id="todayCash">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #3b82f6;">
+                        <h3>Card</h3>
+                        <div class="value" id="todayCard">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #5f259f;">
+                        <h3>PhonePe</h3>
+                        <div class="value" id="todayPhonePe">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #06b6d4;">
+                        <h3>Other UPI</h3>
+                        <div class="value" id="todayUPI">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #3b82f6;">
+                        <h3>Insurance</h3>
+                        <div class="value" id="todayInsurance">₹0.00</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #f59e0b;">
+                        <h3>Credit / Due</h3>
+                        <div class="value" id="todayDue">₹0.00</div>
+                    </div>
+                </div>
+
+                <!-- Collections split by service line -->
+                <div class="summary-grid" style="margin-top:4px;">
+                    <div class="summary-card" style="border-top: 4px solid #A61E4D;">
+                        <h3>Hospitalisation Bills</h3>
+                        <div class="value" id="lineHospitalTotal">₹0.00</div>
+                        <div style="font-size:12px;color:#64748b;" id="lineHospitalCount">0 bills</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #0f766e;">
+                        <h3>Lab &amp; Imaging Bills</h3>
+                        <div class="value" id="lineLabTotal">₹0.00</div>
+                        <div style="font-size:12px;color:#64748b;" id="lineLabCount">0 bills</div>
+                    </div>
+                    <div class="summary-card" style="border-top: 4px solid #7c3aed;">
+                        <h3>Pharmacy Bills</h3>
+                        <div class="value" id="linePharmacyTotal">₹0.00</div>
+                        <div style="font-size:12px;color:#64748b;" id="linePharmacyCount">0 bills</div>
+                    </div>
+                </div>
+
+                <!-- Action controls -->
+                <div class="page-header" style="flex-wrap:wrap;gap:10px;">
+                    <div class="filter-tabs" id="serviceFilters">
+                        <button class="filter-btn active" data-service="all">All Services</button>
+                        <button class="filter-btn" data-service="hospital">Hospitalisation</button>
+                        <button class="filter-btn" data-service="lab">Lab &amp; Imaging</button>
+                        <button class="filter-btn" data-service="pharmacy">Pharmacy</button>
+                    </div>
+                </div>
+
+                <div class="page-header">
+                    <div class="filter-tabs" id="paymentFilters">
+                        <button class="filter-btn active" data-filter="all">All Transactions</button>
+                        <button class="filter-btn" data-filter="paid">Paid</button>
+                        <button class="filter-btn" data-filter="unpaid">Unpaid</button>
+                        <button class="filter-btn" data-filter="partial">Partial</button>
+                        <button class="filter-btn" data-filter="due">Due / Credit</button>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="downloadDailyReportPDF()" style="background:#DC2626;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <i class="fa-solid fa-file-pdf"></i> Daily Report PDF
+                        </button>
+                        <button id="exportCsvBtn" class="btn-secondary" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-excel"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collections Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bill No</th>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Service</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Payment Status</th>
+                                    <th>Staff</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="collectionsTableBody">
+                                <tr><td colspan="10" style="text-align: center; color: #888; padding: 24px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading today's transactions...</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8fafc; font-weight: bold; border-top: 2px solid var(--border-color);">
+                                    <td colspan="5" style="text-align: right; padding: 12px 16px;">Grand Total:</td>
+                                    <td id="tableTotalAmount" style="padding: 12px 16px; color: var(--primary-teal); font-size: 1.1rem;">₹0.00</td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/today-collections.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <style>
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            outline: none;
+            height: 38px;
+            background: white;
+        }
+        .filter-input:focus {
+            border-color: var(--primary-teal);
+        }
+
+        /* Autocomplete search results dropdown */
+        .search-results-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            margin-top: 2px;
+        }
+        
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: var(--transition);
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Status badges */
+        .badge-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            text-transform: capitalize;
+        }
+        .status-scheduled { background-color: #eff6ff; color: #1e40af; }
+        .status-in_progress { background-color: #f0fdfa; color: #0f766e; }
+        .status-completed { background-color: #f0fdf4; color: #166534; }
+        .status-cancelled { background-color: #fef2f2; color: #991b1b; }
+        .status-noshow { background-color: #f1f5f9; color: #475569; }
+
+        .btn-action-sm {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            height: 28px;
+        }
+        .btn-consult {
+            background-color: var(--primary-teal);
+            color: white;
+        }
+        .btn-consult:hover {
+            background-color: var(--primary-teal-hover);
+        }
+        .btn-cancel {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+        .btn-cancel:hover {
+            background-color: #fee2e2;
+        }
+        .btn-reschedule {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+        .btn-reschedule:hover {
+            background-color: #dbeafe;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>Appointments Scheduler</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                
+                <!-- Filters and Quick Actions -->
+                <div class="filter-row">
+                    <div class="filter-controls">
+                        <!-- Date selector -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label style="font-size: 11px; font-weight:600; color:var(--text-muted);">SCHEDULE DATE</label>
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <input type="date" id="filterDate" class="filter-input">
+                                <button type="button" id="btnFilterYesterday" class="btn-secondary" style="height:38px; padding:0 12px; font-size:12px; font-weight:600;">Yesterday</button>
+                                <button type="button" id="btnFilterToday" class="btn-secondary" style="height:38px; padding:0 12px; font-size:12px; font-weight:600;">Today</button>
+                                <button type="button" id="btnFilterTomorrow" class="btn-secondary" style="height:38px; padding:0 12px; font-size:12px; font-weight:600;">Tomorrow</button>
+                            </div>
+                        </div>
+                        <!-- Doctor filter dropdown -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label style="font-size: 11px; font-weight:600; color:var(--text-muted);">FILTER DOCTOR</label>
+                            <select id="filterDoctor" class="filter-input" style="width:200px;">
+                                <option value="">All Doctors</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="calendarSyncBtn" class="btn-secondary" style="display:none; height:42px; align-items:center; gap:6px;"><i class="fa-regular fa-calendar-check"></i> Sync to my calendar</button>
+                    <button id="btnOpenBookModal" class="btn-primary" style="height:42px;"><i class="fa-solid fa-calendar-plus"></i> Book New Appointment</button>
+                </div>
+
+                <!-- Appointments Listing Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-regular fa-calendar-check" style="margin-right:6px; color:var(--primary-teal);"></i> Patient Appointments Queue</h3>
+                        <span id="apptCountBadge" style="background:#0F2B5B; color:white; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600;">0 appointments</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Doctor</th>
+                                    <th>Department</th>
+                                    <th>Time</th>
+                                    <th>Visit Type</th>
+                                    <th>Chief Complaint</th>
+                                    <th>Fee / Payment</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody">
+                                <tr><td colspan="10" style="text-align: center; padding: 24px; color:#888;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>Loading appointments...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Booking Modal Overlay -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>Book Patient Appointment</h2>
+                <button class="close-btn" id="closeBookingModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <div class="form-grid">
+                        
+                        <!-- Patient Search field & Quick Patient switcher -->
+                        <div class="form-group full-width" style="position:relative;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="margin-bottom:0;">Search Patient (Name, Phone or ID) <span style="color:var(--error-color)">*</span></label>
+                                <button type="button" id="btnToggleQuickPatient" style="background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:12px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">
+                                    <i class="fa-solid fa-user-plus"></i> + Quick New Patient (Register Later)
+                                </button>
+                            </div>
+                            <div id="searchPatientContainer">
+                                <div class="search-bar" style="border: 1px solid var(--border-color); border-radius: 6px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="apptPatientSearch" placeholder="Type at least 2 characters to search..." style="width:100%; border:none; padding:10px 12px; outline:none;" autocomplete="off">
+                                </div>
+                                <!-- Autocomplete list -->
+                                <div class="search-results-dropdown" id="apptPatientSearchResults"></div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Patient Entry Section (Inline for fast booking, full registration later) -->
+                        <div class="form-group full-width" id="quickPatientSection" style="display:none; background:#f8fafc; border:1px solid #93c5fd; border-radius:8px; padding:12px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-size:13px; font-weight:700; color:#1e40af;">
+                                    <i class="fa-solid fa-bolt" style="color:#eab308; margin-right:4px;"></i> Quick New Patient <span style="font-size:11px; font-weight:normal; color:#64748b;">(Full registration can be completed later)</span>
+                                </div>
+                                <button type="button" id="btnCancelQuickPatient" style="background:none; border:none; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer;"><i class="fa-solid fa-arrow-rotate-left"></i> Back to Search</button>
+                            </div>
+                            <div class="form-grid" style="grid-template-columns: 1.2fr 1fr 0.8fr 1fr; gap:10px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:12px;">Patient Name <span style="color:var(--error-color)">*</span></label>
+                                    <input type="text" id="quickName" placeholder="e.g. S. Lavanya" class="filter-input" style="height:36px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:12px;">Mobile Phone <span style="color:var(--error-color)">*</span></label>
+                                    <input type="tel" id="quickPhone" placeholder="10-digit number" class="filter-input" style="height:36px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:12px;">Age <span style="color:var(--error-color)">*</span></label>
+                                    <input type="number" id="quickAge" placeholder="26" min="1" max="120" class="filter-input" style="height:36px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:12px;">Gender <span style="color:var(--error-color)">*</span></label>
+                                    <select id="quickGender" class="filter-input" style="height:36px;">
+                                        <option value="Female">Female</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prefilled Selected Patient Card -->
+                        <div class="form-group full-width" id="selectedPatientCard" style="display:none; background:#f0f9f7; border: 1px solid var(--primary-teal); border-radius:8px; padding:14px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <div>
+                                    <strong id="cardPatientName" style="color:var(--primary-navy); font-size:1rem;"></strong>
+                                    <span class="id-badge" id="cardPatientId" style="margin-left:8px;"></span>
+                                </div>
+                                <button type="button" id="clearPatientBtn" style="background:none; border:none; color:var(--error-color); cursor:pointer; font-weight:600; font-size:0.8rem;"><i class="fa-solid fa-circle-xmark"></i> Reset</button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+                                <div><span style="color:#666;">Age/Gender:</span> <span id="cardAgeGender" style="font-weight:550;">—</span></div>
+                                <div><span style="color:#666;">Phone:</span> <span id="cardPhone" style="font-weight:550;">—</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Select -->
+                        <div class="form-group">
+                            <label>Consulting Doctor <span style="color:var(--error-color)">*</span></label>
+                            <select id="bookingDoctor" required class="filter-input" style="width:100%; height:40px;">
+                                <option value="">Select Doctor</option>
+                            </select>
+                        </div>
+
+                        <!-- Department (Pre-filled on doctor select) -->
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="bookingDept" class="filter-input" style="width:100%; height:40px; background:#f1f5f9;" readonly>
+                        </div>
+
+                        <!-- Appointment Date -->
+                        <div class="form-group">
+                            <label>Appointment Date <span style="color:var(--error-color)">*</span></label>
+                            <input type="date" id="bookingDate" required class="filter-input" style="width:100%; height:40px;">
+                        </div>
+
+                        <!-- Time Slot Select -->
+                        <div class="form-group">
+                            <label>Time Slot <span style="color:var(--error-color)">*</span></label>
+                            <select id="bookingTime" required class="filter-input" style="width:100%; height:40px;">
+                                <option value="">Select Slot</option>
+                                <option value="09:00 AM">09:00 AM</option>
+                                <option value="09:30 AM">09:30 AM</option>
+                                <option value="10:00 AM">10:00 AM</option>
+                                <option value="10:30 AM">10:30 AM</option>
+                                <option value="11:00 AM">11:00 AM</option>
+                                <option value="11:30 AM">11:30 AM</option>
+                                <option value="12:00 PM">12:00 PM</option>
+                                <option value="12:30 PM">12:30 PM</option>
+                                <option value="01:00 PM">01:00 PM</option>
+                                <option value="01:30 PM">01:30 PM</option>
+                                <option value="02:00 PM">02:00 PM</option>
+                                <option value="02:30 PM">02:30 PM</option>
+                                <option value="03:00 PM">03:00 PM</option>
+                                <option value="03:30 PM">03:30 PM</option>
+                                <option value="04:00 PM">04:00 PM</option>
+                                <option value="04:30 PM">04:30 PM</option>
+                                <option value="05:00 PM">05:00 PM</option>
+                                <option value="05:30 PM">05:30 PM</option>
+                                <option value="06:00 PM">06:00 PM</option>
+                            </select>
+                        </div>
+
+                        <!-- Visit Type -->
+                        <div class="form-group">
+                            <label>Visit Type <span style="color:var(--error-color)">*</span></label>
+                            <select id="bookingVisitType" required class="filter-input" style="width:100%; height:40px;">
+                                <option value="Follow-up">Auto / Follow-up (use visit history)</option>
+                                <option value="New Visit">New Visit / New OP episode</option>
+                            </select>
+                        </div>
+
+                        <!-- Sequential token preview -->
+                        <div class="form-group" style="display:flex; flex-direction:column; justify-content:center;">
+                            <label>Estimated Token</label>
+                            <span id="tokenPreview" style="font-size:1.25rem; font-weight:700; color:var(--primary-teal);"># Will generate on booking</span>
+                        </div>
+
+                        <!-- OP Fee & Payment Details Block -->
+                        <div class="form-group full-width" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-top:5px; margin-bottom:5px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px; flex-wrap:wrap; gap:8px;">
+                                <div style="font-weight:700; color:#0F2B5B; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+                                    <i class="fa-solid fa-receipt" style="color:#0D7A70;"></i> OP Consultation Fee &amp; Payment
+                                </div>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; color:#0D7A70; margin:0;">
+                                    <input type="checkbox" id="bookingFreeOp" style="width:16px; height:16px; cursor:pointer;">
+                                    Free OP (Waive Fee)
+                                </label>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 140px 1fr 180px; gap:14px; align-items:flex-start;">
+                                <!-- Fee amount -->
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:12px; font-weight:600;">Consultation Fee (₹)</label>
+                                    <input type="number" id="bookingOpFee" class="filter-input" style="height:38px; font-weight:700; font-size:15px; color:#0F2B5B;" min="0" step="10" value="300" readonly>
+                                    <small id="bookingFeePolicyNote" aria-live="polite">New OP ₹300; reviews use visit history.</small>
+                                    <label style="font-size:12px;margin-top:8px;"><input type="checkbox" id="bookingPhoneOP"> Phone OP (+₹100)</label>
+                                </div>
+
+                                <!-- Payment mode selector (Cash, UPI, Card, Due) -->
+                                <div class="form-group" id="bookingPayModeContainer" style="margin-bottom:0;">
+                                    <label style="font-size:12px; font-weight:600;">Payment Mode</label>
+                                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;">
+                                        <label class="pay-mode-btn active" id="btnPayCash" style="padding:6px 12px; border:1px solid #0D7A70; background:#f0fdf4; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; display:flex; align-items:center; gap:5px;">
+                                            <input type="radio" name="bookingPayMode" value="Cash" checked style="display:none;">
+                                            <i class="fa-solid fa-money-bill-wave" style="color:#16a34a;"></i> Cash
+                                        </label>
+                                        <label class="pay-mode-btn" id="btnPayUpi" style="padding:6px 12px; border:1px solid #cbd5e1; background:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; display:flex; align-items:center; gap:5px;">
+                                            <input type="radio" name="bookingPayMode" value="UPI" style="display:none;">
+                                            <i class="fa-solid fa-mobile-screen" style="color:#2563eb;"></i> UPI / QR
+                                        </label>
+                                        <label class="pay-mode-btn" id="btnPayCard" style="padding:6px 12px; border:1px solid #cbd5e1; background:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; display:flex; align-items:center; gap:5px;">
+                                            <input type="radio" name="bookingPayMode" value="Card" style="display:none;">
+                                            <i class="fa-solid fa-credit-card" style="color:#7c3aed;"></i> Card
+                                        </label>
+                                        <label class="pay-mode-btn" id="btnPayDue" style="padding:6px 12px; border:1px solid #cbd5e1; background:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; display:flex; align-items:center; gap:5px;">
+                                            <input type="radio" name="bookingPayMode" value="Due" style="display:none;">
+                                            <i class="fa-solid fa-clock-rotate-left" style="color:#ea580c;"></i> Due (Pay Later)
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Live payment summary box -->
+                                <div style="background:white; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px; text-align:right;">
+                                    <div style="font-size:11px; color:#64748b; text-transform:uppercase;">To Collect</div>
+                                    <div id="bookingFeeSummary" style="font-size:18px; font-weight:800; color:#0F2B5B;">₹500</div>
+                                    <div id="bookingPayStatusBadge" style="font-size:11px; font-weight:600; color:#16a34a;">Paid via Cash</div>
+                                </div>
+                            </div>
+
+                            <!-- Free OP Approval & Reason details (shown only if Free OP checked) -->
+                            <div id="bookingFreeOpGroup" style="display:none; margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:12px; font-weight:600;">Free OP Reason <span style="color:var(--error-color)">*</span></label>
+                                        <select id="bookingFreeOpReason" class="filter-input" style="height:36px;">
+                                            <option value="Doctor Instruction / Consultation Courtesy">Doctor Instruction / Complimentary</option>
+                                            <option value="Post-op / Post-delivery Follow-up">Post-op / Delivery Follow-up</option>
+                                            <option value="Staff or Doctor Family Member">Staff / Doctor Family Member</option>
+                                            <option value="Poor Patient / BPL Concession">Poor Patient / BPL Concession</option>
+                                            <option value="Hospital Director / Admin Approval">Director / Admin Approval</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:12px; font-weight:600;">Approved By <span style="color:var(--error-color)">*</span></label>
+                                        <input type="text" id="bookingFreeOpApprover" placeholder="e.g. Dr. Demo Jyothsna or Admin" class="filter-input" style="height:36px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chief Complaint -->
+                        <div class="form-group full-width">
+                            <label>Chief Complaint <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal">(Optional)</span></label>
+                            <textarea id="bookingComplaint" class="filter-input" style="width:100%; height:75px; resize:none; padding:10px;" placeholder="Brief details about what the patient is visiting for..."></textarea>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="padding-top:15px; border-top: 1px solid var(--border-color); margin-top: 15px;">
+                        <button type="button" class="btn-secondary" id="cancelBookingBtn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveBookingBtn">Book Appointment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rescheduling Modal Overlay -->
+    <div id="rescheduleModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Reschedule Appointment</h2>
+                <button class="close-btn" id="closeRescheduleModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="rescheduleForm">
+                    <input type="hidden" id="rescheduleApptId">
+                    <div class="form-group">
+                        <label>New Date <span style="color:var(--error-color)">*</span></label>
+                        <input type="date" id="rescheduleDate" required class="filter-input" style="width:100%; height:40px;">
+                    </div>
+                    <div class="form-group">
+                        <label>New Time Slot <span style="color:var(--error-color)">*</span></label>
+                        <select id="rescheduleTime" required class="filter-input" style="width:100%; height:40px;">
+                            <option value="">Select Slot</option>
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="09:30 AM">09:30 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="10:30 AM">10:30 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="11:30 AM">11:30 AM</option>
+                            <option value="12:00 PM">12:00 PM</option>
+                            <option value="12:30 PM">12:30 PM</option>
+                            <option value="01:00 PM">01:00 PM</option>
+                            <option value="01:30 PM">01:30 PM</option>
+                            <option value="02:00 PM">02:00 PM</option>
+                            <option value="02:30 PM">02:30 PM</option>
+                            <option value="03:00 PM">03:00 PM</option>
+                            <option value="03:30 PM">03:30 PM</option>
+                            <option value="04:00 PM">04:00 PM</option>
+                            <option value="04:30 PM">04:30 PM</option>
+                            <option value="05:00 PM">05:00 PM</option>
+                            <option value="05:30 PM">05:30 PM</option>
+                            <option value="06:00 PM">06:00 PM</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer" style="padding-top:15px; border-top: 1px solid var(--border-color); margin-top: 15px;">
+                        <button type="button" class="btn-secondary" id="cancelRescheduleBtn">Cancel</button>
+                        <button type="submit" class="btn-primary">Confirm Reschedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/integrations.js?v=20261013b"></script>
+    <script src="js/calendar-sync.js?v=20261013b"></script>
+    <script src="js/appointments.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

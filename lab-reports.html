@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Reports — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2>Lab Reports</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <h2>Manage Lab Reports</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button id="exportReportsBtn" class="btn-secondary" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                        <button id="uploadReportBtn" class="btn-primary"><i class="fa-solid fa-upload"></i> Upload Report</button>
+                    </div>
+                </div>
+
+                <!-- Pending Lab Work (Lab Staff/Admin only) (CHANGE 2) -->
+                <div id="pendingLabWorkContainer" class="card classic-panel" style="display: none; margin-bottom: 24px;">
+                    <div class="card-header classic-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-flask-vial"></i> Pending Lab Work (After Billing)
+                        </h3>
+                        <span id="pendingLabCount" class="classic-count">0 pending</span>
+                    </div>
+                    <div class="table-responsive" style="padding: 10px;">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Queue Pos</th>
+                                    <th>Bill Number</th>
+                                    <th>Patient Name</th>
+                                    <th>Doctor</th>
+                                    <th>Tests Needed</th>
+                                    <th>Lab Notes</th>
+                                    <th>Date Ordered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingLabBody">
+                                <tr><td colspan="8" style="text-align: center; color: #888; padding: 20px;">No pending lab work.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pending Report Requests (Lab Staff/Admin only) -->
+                <div id="pendingRequestsContainer" class="card classic-panel" style="display: none; margin-bottom: 24px;">
+                    <div class="card-header classic-panel-header">
+                        <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Doctor Orders Awaiting Billing
+                        </h3>
+                    </div>
+                    <div class="table-responsive" style="padding: 10px;">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Test Name</th>
+                                    <th>Linked Bill ID</th>
+                                    <th>Date Ordered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingRequestsTableBody">
+                                <tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">No pending requests.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Filter Bar (Part 8) -->
+                <div class="card" style="margin-bottom: 20px; padding: 15px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Patient / ID Search</label>
+                            <div style="position: relative;">
+                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 12px; color: #888;"></i>
+                                <input type="text" id="filterPatient" placeholder="Search Patient..." style="padding-left: 30px; width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px;">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Status</label>
+                            <select id="filterStatus" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                                <option value="All">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="ready">Ready</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;" id="billingFilterGroup">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Billing Status</label>
+                            <select id="filterBilling" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                                <option value="All">All Billing</option>
+                                <option value="unbilled">Unbilled</option>
+                                <option value="billed">Billed</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Due">Due</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">From Date</label>
+                            <input type="date" id="filterFromDate" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">To Date</label>
+                            <input type="date" id="filterToDate" style="width: 100%; height: 38px; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px;">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btnApplyFilters" class="btn-primary" style="flex: 1; height: 38px; padding: 0 10px;"><i class="fa-solid fa-filter"></i> Filter</button>
+                            <button id="btnClearFilters" class="btn-secondary" style="flex: 1; height: 38px; padding: 0 10px;"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666; font-weight: 500;">
+                        <span id="reportsCountLabel">Showing 0 reports</span>
+                    </div>
+                </div>
+
+                <!-- Reports Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Report ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Referred By</th>
+                                    <th>Test Name</th>
+                                    <th class="billing-col">Amount</th>
+                                    <th>Date</th>
+                                    <th class="billing-col">Billing Status</th>
+                                    <th>Status</th>
+                                    <th>WhatsApp</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <tr><td colspan="11" style="text-align: center; padding: 20px;">Loading reports...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- View Report Modal -->
+    <div id="viewReportModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; width:95%;">
+            <div class="modal-header">
+                <h2>Lab Report Details</h2>
+                <button class="close-btn" id="closeViewReportModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;width:140px;">Report ID</td><td style="padding:10px;font-weight:600;" id="viewReportId">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Patient</td><td style="padding:10px;" id="viewReportPatient">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Test Name</td><td style="padding:10px;font-weight:600;" id="viewReportTest">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;vertical-align:top;">Individual Tests</td><td style="padding:10px;" id="viewReportTestsList">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Referred By</td><td style="padding:10px;" id="viewReportReferred">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Test Date</td><td style="padding:10px;" id="viewReportDate">-</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#888;">Status</td><td style="padding:10px;" id="viewReportStatus">-</td></tr>
+                    <tr><td style="padding:10px;color:#888;vertical-align:top;">Notes</td><td style="padding:10px;" id="viewReportNotes">-</td></tr>
+                </table>
+            </div>
+            <div class="modal-footer" style="padding:20px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;" id="viewReportModalFooter">
+                <button type="button" class="btn-primary" id="viewReportPdfBtn" style="display:none;"><i class="fa-solid fa-file-pdf"></i> View PDF</button>
+                <button type="button" class="btn-primary" id="viewReportPrintBtn" style="display:none; background:#0D7A70; border-color:#0D7A70;"><i class="fa-solid fa-print"></i> Print Report</button>
+                <button type="button" class="btn-secondary" id="closeViewReportModal2" onclick="document.getElementById('viewReportModal').classList.remove('active')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Report Modal -->
+    <div id="uploadReportModal" class="modal">
+        <div class="modal-content" style="max-width:600px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden;">
+            <div class="modal-header" style="padding:20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="margin:0; font-size:1.2rem; color:var(--primary-navy);">Upload Lab Report</h2>
+                <button type="button" class="close-btn" id="closeUploadModalBtn" style="background:none; border:none; cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px; overflow-y:auto; flex:1;">
+                <form id="uploadReportForm">
+                    <!-- Standard Patient Search -->
+                    <div style="position:relative; margin-bottom: 20px;">
+                        <label style="font-size:11px;color:#666;font-weight:500;display:block;margin-bottom:6px;">PATIENT</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" id="lab_patientSearchInput" placeholder="Type name, phone or Patient ID then press Enter or click Search" style="flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;" onkeyup="if(event.key==='Enter'){searchPatient_lab(this.value)}">
+                            <button type="button" onclick="searchPatient_lab(document.getElementById('lab_patientSearchInput').value)" style="padding:12px 20px;background:#0D7A70;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+                                <i class="fa-solid fa-magnifying-glass"></i> Search
+                            </button>
+                        </div>
+                        <div id="lab_patientSearchResults" style="display:none;position:absolute;top:100%;left:0;width:100%;background:white;border:1px solid #ddd;border-radius:8px;max-height:250px;overflow-y:auto;z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,0.15);margin-top:4px;"></div>
+                    </div>
+                    <div id="lab_selectedPatientCard" style="display:none;background:#f0f9f7;border:1px solid #0D7A70;border-radius:8px;padding:16px;margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <div>
+                                <strong id="lab_cardPatientName" style="color:#0F2B5B;font-size:15px;"></strong>
+                                <span style="color:#666;margin-left:8px;font-size:13px;" id="lab_cardPatientId"></span>
+                            </div>
+                            <button type="button" onclick="clearPatient_lab()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;">✕ Change Patient</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">AGE / GENDER</label>
+                                <div id="lab_cardAgeGender" style="font-size:13px;color:#333;margin-top:2px;">—</div>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">DOCTOR FOR THIS VISIT</label>
+                                <select id="lab_doctorSelect" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:2px;">
+                                    <option value="">Select Doctor</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:#666;font-weight:500;">DEPARTMENT</label>
+                                <select id="lab_deptSelect" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:2px;">
+                                    <option value="">Select Department</option>
+                                    <option value="General">General</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Orthopaedics">Orthopaedics</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="Gynaecology">Gynaecology</option>
+                                    <option value="Paediatrics">Paediatrics</option>
+                                    <option value="ENT">ENT</option>
+                                    <option value="Ophthalmology">Ophthalmology</option>
+                                    <option value="Dermatology">Dermatology</option>
+                                    <option value="Oncology">Oncology</option>
+                                    <option value="Urology">Urology</option>
+                                    <option value="Nephrology">Nephrology</option>
+                                    <option value="Psychiatry">Psychiatry</option>
+                                    <option value="Dental">Dental</option>
+                                    <option value="Emergency">Emergency</option>
+                                    <option value="ICU">ICU</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px;font-size:11px;color:#0D7A70;">
+                            <i class="fa-solid fa-circle-info"></i> You can change doctor and department for this visit. Patient registration remains unchanged.
+                        </div>
+                    </div>
+
+                    <!-- Report Details -->
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Referred By Doctor</label>
+                        <select id="labReferredBy" required>
+                            <option value="">Select Doctor</option>
+                        </select>
+                    </div>
+                    <!-- Notes from reception (CHANGE 3) -->
+                    <div id="labNotesFromReception" style="display:none; background:#fff8e1; border:1px solid #ffe082; color:#b78103; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; font-weight:500;"></div>
+                    <!-- Modal Tabs (FIX 2) -->
+                    <div class="lab-modal-tabs" style="display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:15px;">
+                        <button type="button" id="tabEnterResultsBtn" class="lab-tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:600; font-size:14px; color:#0D7A70; border-bottom:2px solid #0D7A70; cursor:pointer;">Enter Results</button>
+                        <button type="button" id="tabUploadFileBtn" class="lab-tab-btn" style="flex:1; padding:10px; border:none; background:none; font-weight:600; font-size:14px; color:#64748b; cursor:pointer;">Upload File (External PDF)</button>
+                    </div>
+
+                    <input type="hidden" id="labUploadMode" value="single">
+
+                    <!-- Tab A: Enter Results Container -->
+                    <div id="tabEnterResultsContainer">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Lab Report Template</label>
+                            <select id="labTemplateSelect" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                                <option value="">-- Select Template --</option>
+                                <option value="cbc">Complete Blood Count (CBC)</option>
+                                <option value="hba1c">HbA1c (Glycated Haemoglobin)</option>
+                                <option value="fever">Fever Profile</option>
+                                <option value="lipid">Lipid Profile</option>
+                                <option value="thyroid">Thyroid Profile</option>
+                                <option value="sugar">Blood Sugar (Fasting & PP)</option>
+                                <option value="urine">Urine Routine Examination</option>
+                                <option value="lft">Liver Function Test (LFT)</option>
+                                <option value="kft">Kidney Function Test (KFT)</option>
+                                <option value="electrolytes">Serum Electrolytes</option>
+                                <option value="antenatal_profile">Antenatal Profile</option>
+                                <option value="ogtt">OGTT (Glucose Tolerance)</option>
+                                <option value="double_marker">Double Marker</option>
+                                <option value="triple_marker">Triple Marker</option>
+                                <option value="quadruple_marker">Quadruple Marker</option>
+                                <option value="torch">TORCH Panel</option>
+                                <option value="blood_group_rh">Blood Group &amp; Rh</option>
+                                <option value="coombs">Coombs Test</option>
+                                <option value="newborn_bilirubin">Newborn Bilirubin</option>
+                                <option value="newborn_screening">Newborn Screening</option>
+                                <option value="custom">Custom / New test type…</option>
+                            </select>
+                        </div>
+                        <div id="labCustomTestBox" style="display:none;margin-bottom:15px;padding:12px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;">
+                            <div style="font-weight:600;margin-bottom:8px;color:#0F2B5B;">Define new test type</div>
+                            <div class="form-group"><label>Test name</label><input id="labCustomTestName" placeholder="e.g. Serum Ferritin panel" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;"></div>
+                            <div class="form-group"><label>Parameters (one per line: Name | Unit | Min | Max)</label>
+                                <textarea id="labCustomParams" rows="4" placeholder="Ferritin | ng/mL | 15 | 150&#10;Iron | mcg/dL | 50 | 170" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;"></textarea>
+                            </div>
+                            <button type="button" class="btn-secondary" id="labApplyCustomTestBtn" style="font-size:12px;">Apply parameters</button>
+                        </div>
+                        
+                        <!-- Parameters Table -->
+                        <div class="table-responsive" style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background:#f8fafc; border-bottom:1px solid #ddd;">
+                                        <th style="padding: 8px; text-align: left;">Parameter Name</th>
+                                        <th style="padding: 8px; text-align: center; width: 90px;">Result</th>
+                                        <th style="padding: 8px; text-align: center; width: 80px;">Unit</th>
+                                        <th style="padding: 8px; text-align: center; width: 110px;">Normal Range</th>
+                                        <th style="padding: 8px; text-align: center; width: 80px;">Flag</th>
+                                        <th style="padding: 8px; text-align: center; width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="labParamsTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; color: #888; padding: 12px;">Select a template or click "Add Custom Row" to start.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="text-align: left; margin-bottom: 15px;">
+                            <button type="button" id="btnAddLabCustomRow" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; background:#f1f5f9; border-color:#cbd5e1; color:#334155; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <i class="fa-solid fa-plus"></i> Add Custom Row
+                            </button>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label>Sample Collected At <span style="color:var(--error-color)">*</span></label>
+                                <input type="datetime-local" id="labSampleCollectedAt">
+                            </div>
+                            <div class="form-group">
+                                <label>Reported At <span style="color:var(--error-color)">*</span></label>
+                                <input type="datetime-local" id="labReportedAt">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Remarks / Interpretation</label>
+                            <textarea id="labRemarks" rows="2" placeholder="e.g. Clinical correlation suggested..." style="width:100%; border:1px solid #ddd; border-radius:6px; padding:8px;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Tab B: Upload File Container -->
+                    <div id="tabUploadFileContainer" style="display:none;">
+                        <!-- Single Test vs Panel Mode Toggle -->
+                        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                            <button type="button" id="btnSingleTestMode" class="btn-primary" style="flex:1; justify-content:center;">Single Test</button>
+                            <button type="button" id="btnPanelMode" class="btn-secondary" style="flex:1; justify-content:center; background:#f1f5f9; color:#334155; border-color:#cbd5e1;">Panel or Multiple</button>
+                        </div>
+
+                        <!-- Single Test Input Fields -->
+                        <div id="singleTestFields" style="margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label>Test Name <span style="color:var(--error-color)">*</span></label>
+                                <input type="text" id="labTestName">
+                            </div>
+                            <div class="form-group lab-amount-group">
+                                <label>Amount (₹) <span style="color:var(--error-color)">*</span></label>
+                                <input type="number" id="labTestAmount" min="0" value="0" style="padding:10px 15px; border:1px solid var(--border-color); border-radius:6px; width:100%;">
+                            </div>
+                        </div>
+
+                        <!-- Panel / Multiple Fields -->
+                        <div id="panelFields" style="margin-bottom: 15px; display:none;">
+                            <div class="form-group">
+                                <label>Panel/Profile Name <span style="color:var(--error-color)">*</span></label>
+                                <input type="text" id="labPanelName" placeholder="e.g. Fever Profile, Liver Function Test">
+                            </div>
+                            <label style="font-size:11px;color:#666;font-weight:500;display:block;margin-bottom:6px;">TESTS IN THIS PANEL</label>
+                            <div id="panelRowsContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+                            <button type="button" id="btnAddPanelRow" class="btn-secondary" style="padding:6px 12px; font-size:0.85rem; margin-top:10px;"><i class="fa-solid fa-plus"></i> Add Another Test</button>
+                            <div style="margin-top:15px; font-weight:600; text-align:right; color:var(--primary-navy);" class="lab-amount-group">Total Amount: ₹<span id="labPanelTotalAmount">0.00</span></div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Upload PDF Report (Max 10MB) <span style="color:var(--error-color)">*</span></label>
+                            <input type="file" id="labPdfFile" accept="application/pdf">
+                            <div id="labUploadProgressContainer" style="display:none;margin-top:10px;">
+                                <div style="font-size:12px;color:#666;margin-bottom:4px;">Uploading file... <span id="labUploadPct">0%</span></div>
+                                <div style="background:#eee;border-radius:4px;height:8px;overflow:hidden;"><div id="labUploadProgress" style="width:0%;background:#0D7A70;height:100%;transition:width 0.3s;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Common fields (Date and status and general notes) -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Test Date</label>
+                            <input type="date" id="labTestDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="labStatus" required>
+                                <option value="pending">Pending</option>
+                                <option value="ready">Ready</option>
+                                <option value="delivered">Delivered</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>General Notes / Remarks</label>
+                        <textarea id="labNotes" rows="2" placeholder="General laboratory notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="padding:20px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-secondary" id="cancelUploadBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="saveReportBtn">Save Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/lab-reports.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+

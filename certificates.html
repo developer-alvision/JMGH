@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificates — Jyothsna Maternity Hospital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><i class="fa-solid fa-hospital-user"></i> Jyothsna</div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <main class="main-wrapper">
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>Certificates</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <div class="page-content">
+
+                <!-- Issue a certificate -->
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-stamp"></i> Issue a certificate</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div id="certTypeTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;"></div>
+
+                        <!-- The server reserves a unique number when issuing. -->
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label>Certificate number (Automatic)</label>
+                            <input type="text" id="certNumberInput" maxlength="40" placeholder="Generated automatically when issued" readonly aria-describedby="certLastNumberHint">
+                            <small style="color:var(--text-muted);" id="certLastNumberHint">A unique yearly number is reserved when issued.</small>
+                        </div>
+
+                        <!-- Patient picker -->
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label>Patient <span style="color:#dc2626;">*</span></label>
+                            <input type="text" id="certPatientSearch" placeholder="Search by name, phone or Patient ID..." style="width:100%;">
+                            <div id="certPatientResults" style="margin-top:6px;"></div>
+                            <div id="certSelectedPatient" style="display:none;margin-top:10px;background:#E6F4F1;border:1px solid #B3DFD8;border-radius:8px;padding:10px 14px;font-size:13px;color:#0B6159;"></div>
+                        </div>
+
+                        <!-- Source record picker (birth / delivery only) -->
+                        <div class="form-group" id="certSourceGroup" style="display:none;margin-bottom:14px;">
+                            <label id="certSourceLabel">Linked record</label>
+                            <select id="certSourceSelect" style="width:100%;"></select>
+                            <small style="color:var(--text-muted);">Choosing a record fills the form from the hospital's own delivery register.</small>
+                        </div>
+
+                        <form id="certIssueForm">
+                            <div class="form-grid" id="certFieldsContainer"></div>
+                            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;border-top:1px solid #f1f5f9;padding-top:15px;">
+                                <button type="button" class="btn-secondary" id="certResetBtn">Clear</button>
+                                <button type="submit" class="btn-primary" id="certIssueBtn"><i class="fa-solid fa-file-arrow-down"></i> Issue &amp; download PDF</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Register -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-book"></i> Certificate register</h3>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <select id="certFilterType" style="padding:8px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;">
+                                <option value="">All types</option>
+                                <option value="birth">Birth</option>
+                                <option value="delivery">Delivery</option>
+                                <option value="medical">Medical</option>
+                                <option value="fitness">Fitness</option>
+                            </select>
+                            <input type="text" id="certRegisterSearch" placeholder="Certificate no, patient..." style="padding:8px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;">
+                            <button class="btn-secondary" id="certExportBtn"><i class="fa-solid fa-file-csv"></i> Export</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr>
+                                    <th>Certificate No</th>
+                                    <th>Type</th>
+                                    <th>Patient</th>
+                                    <th>Issued by</th>
+                                    <th>Issued on</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="certRegisterBody">
+                                <tr><td colspan="7" style="text-align:center;padding:30px;color:#888;">Loading register...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/certificates.js?v=20261013b"></script>
+    <script src="js/certificates-page.js?v=20261013b"></script>
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <style>
+        .admin-badge {
+            background: var(--primary-teal);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .admin-section {
+            display: none;
+        }
+        .admin-section.active {
+            display: block;
+        }
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--primary-navy);
+            color: var(--white);
+            border-color: var(--primary-navy);
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary-teal);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+                <div class="nav-title"><h2>Admin Dashboard</h2></div>
+                <div class="nav-user">
+                    <span class="user-info">
+                        <span id="userEmail">Loading...</span>
+                        <span class="admin-badge">Admin</span>
+                    </span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="admin-tabs">
+                    <button class="tab-btn active" data-target="staffSection">Staff</button>
+                    <button class="tab-btn" data-target="doctorsSection">Doctors</button>
+                    <button class="tab-btn" data-target="deptsSection">Departments</button>
+                    <button class="tab-btn" data-target="settingsSection">Settings</button>
+                    <button class="tab-btn" data-target="reportsSection">Reports</button>
+                </div>
+
+                <!-- Section A: Staff Management -->
+                <div id="staffSection" class="admin-section active">
+                    <div class="page-header">
+                        <h2 class="page-title">Staff Management</h2>
+                        <div style="display:flex; gap:10px;">
+                            <button id="syncStaffUidsBtn" class="btn-secondary" style="border-color:#0D7A70; color:#0D7A70;"><i class="fa-solid fa-rotate"></i> Sync Staff UIDs</button>
+                            <button id="addStaffBtn" class="btn-primary"><i class="fa-solid fa-plus"></i> Add New Staff</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Biometric ID</th>
+                                        <th>Role</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTableBody">
+                                    <tr><td colspan="7" style="text-align: center;">Loading staff...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section B: Doctor Management -->
+                <div id="doctorsSection" class="admin-section">
+                    <div class="page-header">
+                        <h2 class="page-title">Doctor Management</h2>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Specialisation</th>
+                                        <th>Department</th>
+                                        <th>OP Fee (₹)</th>
+                                        <th>Free OP</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorsTableBody">
+                                    <tr><td colspan="6" style="text-align: center;">Loading doctors...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section C: Department Management -->
+                <div id="deptsSection" class="admin-section">
+                    <div class="page-header">
+                        <h2 class="page-title">Department Management</h2>
+                        <button id="addDeptBtn" class="btn-primary"><i class="fa-solid fa-plus"></i> Add Department</button>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Head Doctor</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deptsTableBody">
+                                    <tr><td colspan="4" style="text-align: center;">Loading departments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section D: Hospital Settings -->
+                <div id="settingsSection" class="admin-section">
+                    <div class="page-header">
+                        <h2 class="page-title">Hospital Settings</h2>
+                    </div>
+                    <div class="card" style="padding: 20px; max-width: 600px;">
+                        <form id="settingsForm">
+                            <div class="form-group">
+                                <label>Hospital Name</label>
+                                <input type="text" id="hsName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Address</label>
+                                <textarea id="hsAddress" rows="3" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="hsPhone" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="hsEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label>GSTIN</label>
+                                <input type="text" id="hsGstin">
+                            </div>
+                            <div class="form-group">
+                                <label>Shift Start Time (Attendance)</label>
+                                <input type="time" id="hsShiftStartTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Hospital registration number <small style="color:var(--text-muted);">(printed on certificates)</small></label>
+                                <input type="text" id="hsRegistrationNo">
+                            </div>
+                            <div class="form-group">
+                                <label>Drug licence no. 1 <small style="color:var(--text-muted);">(printed on the pharmacy GST bill)</small></label>
+                                <input type="text" id="hsDrugLicence1" placeholder="AP/10/04/2018-149055">
+                            </div>
+                            <div class="form-group">
+                                <label>Drug licence no. 2</label>
+                                <input type="text" id="hsDrugLicence2" placeholder="AP/10/04/2018-149056">
+                            </div>
+                            <div class="form-group">
+                                <label>Near-expiry warning <small style="color:var(--text-muted);">(days before expiry stock is flagged)</small></label>
+                                <input type="number" id="hsNearExpiryDays" min="1" max="365" placeholder="60">
+                            </div>
+                            <div class="form-group">
+                                <label>Follow-up validity <small style="color:var(--text-muted);">(days a follow-up visit stays free)</small></label>
+                                <input type="number" id="hsFollowUpDays" min="0" max="90" placeholder="7">
+                            </div>
+                            <div class="form-group">
+                                <label>Purchase order required before GRN?</label>
+                                <select id="hsGrnRequiresPo">
+                                    <option value="false">Optional — receive stock with or without a PO</option>
+                                    <option value="true">Mandatory — block GRN without a PO number</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Discount approver role</label>
+                                <select id="hsDiscountApprover">
+                                    <option value="doctor">Doctor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="owner">Owner</option>
+                                    <option value="billing_staff">Billing staff</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Refund approver role</label>
+                                <select id="hsRefundApprover">
+                                    <option value="doctor">Doctor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="owner">Owner</option>
+                                    <option value="billing_staff">Billing staff</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="grid-column:1/-1;">
+                                <label>Pharmacy bill footer note <small style="color:var(--text-muted);">(printed at the bottom of every GST bill)</small></label>
+                                <textarea id="hsPharmacyBillNote" rows="2" placeholder="Medicines once sold are taken back only as per store policy."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Branches <small style="color:var(--text-muted);">(one per line: id|Display name — leave blank for single campus)</small></label>
+                                <textarea id="hsBranches" rows="3" placeholder="main|Main Campus&#10;branch2|Second Campus"></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+                        </form>
+                    </div>
+
+                    <!-- Integration switches -->
+                    <div class="card" style="padding:20px; max-width:820px; margin-top:20px;">
+                        <div class="card-header" style="padding:0 0 12px;">
+                            <h3 class="card-title"><i class="fa-solid fa-plug"></i> Integrations</h3>
+                        </div>
+                        <p style="font-size:13px; color:#475569; margin:0 0 16px;">
+                            Every provider stays switched off until its keys are set as Function secrets and the functions are
+                            deployed. Turning a switch on here only makes the feature visible — it never stores a credential.
+                        </p>
+                        <form id="integrationsForm">
+                            <div id="integrationRows"></div>
+                            <button type="submit" class="btn-primary" id="saveIntegrationsBtn" style="margin-top:16px;">Save integration settings</button>
+                        </form>
+
+                        <div style="margin-top:24px; border-top:1px solid #f1f5f9; padding-top:16px;">
+                            <h4 style="margin:0 0 6px; font-size:14px; color:#0F2B5B;"><i class="fa-solid fa-database"></i> Backups</h4>
+                            <p style="font-size:13px; color:#475569; margin:0 0 10px;">
+                                A full export runs automatically at 01:30 every night. Take an extra one before any risky change.
+                            </p>
+                            <button type="button" class="btn-secondary" id="runBackupBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Back up now</button>
+                            <div id="backupStatus" style="margin-top:10px; font-size:12.5px; color:#475569;"></div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- Section E: Doctor Performance Report -->
+                <div id="reportsSection" class="admin-section">
+                    <div class="page-header">
+                        <h2 class="page-title">Doctor Performance Report</h2>
+                        <div style="display:flex; gap:10px;">
+                            <input type="month" id="reportMonthFilter" class="form-control" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;" title="Whole month">
+                            <span style="align-self:center;color:#94a3b8;font-size:12px;">or</span>
+                            <input type="date" id="reportFromDate" class="form-control" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;" title="From date">
+                            <input type="date" id="reportToDate" class="form-control" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;" title="To date">
+                            <button id="filterReportBtn" class="btn-secondary"><i class="fa-solid fa-filter"></i> Apply range</button>
+                            <button id="exportReportBtn" class="btn-primary"><i class="fa-solid fa-download"></i> Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table id="performanceTable">
+                                <thead>
+                                    <tr>
+                                        <th>Doctor Name</th>
+                                        <th>Specialisation</th>
+                                        <th>Patients</th>
+                                        <th>OPD</th>
+                                        <th>IPD</th>
+                                        <th>Consultation Revenue (₹)</th>
+                                        <th>Total Revenue (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="performanceTableBody">
+                                    <tr><td colspan="7" style="text-align: center;">Select a month to load report...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Staff Modal -->
+    <div id="staffModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="staffModalTitle">Add New Staff</h2>
+                <button class="close-btn" id="closeStaffModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="staffForm">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Full Name</label>
+                            <input type="text" id="staffName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="staffEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span id="pwdRequiredMark">*</span> <small id="pwdEditNote" style="display:none;color:#888;font-weight:normal;">— Use “Forgot password” on the sign-in page to reset</small></label>
+                            <input type="password" id="staffPassword" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="staffPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="staffRole" required>
+                                <option value="admin">Admin</option>
+                                <option value="owner">Owner</option>
+                                <option value="doctor">Doctor</option>
+                                <option value="nurse">Nurse</option>
+                                <option value="receptionist">Receptionist</option>
+                                <option value="billing_staff">Billing Staff</option>
+                                <option value="lab_technician">Lab / Radiology Technician</option>
+                                <option value="pharmacist">Pharmacist</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="staffDepartment" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Biometric ID</label>
+                            <input type="text" id="staffBiometricId" placeholder="e.g. BIO101">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelStaffModal">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveStaffBtn">Save Staff</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Doctor Modal -->
+    <div id="doctorModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Edit Doctor Details</h2>
+                <button class="close-btn" id="closeDoctorModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="doctorForm">
+                    <input type="hidden" id="docEditId">
+                    <div class="form-group">
+                        <label>Specialisation</label>
+                        <input type="text" id="docSpecialisation" required>
+                    </div>
+                    <div class="form-group">
+                        <label>OP Fee (₹)</label>
+                        <input type="number" id="docOpFee" required min="0">
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                        <label style="margin-bottom:0;">Free OP</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="docFreeOp">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelDoctorModal">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveDoctorBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Department Modal -->
+    <div id="deptModal" class="modal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2 id="deptModalTitle">Add Department</h2>
+                <button class="close-btn" id="closeDeptModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="deptForm">
+                    <input type="hidden" id="deptEditId">
+                    <div class="form-group">
+                        <label>Department Name <span style="color:var(--error-color)">*</span></label>
+                        <select id="deptName" required><option value="Gynaecology">Gynaecology</option><option value="Surgery">Surgery</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Head Doctor</label>
+                        <select id="deptHeadDoctor"><option value="">None</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="deptDescription" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelDeptModal">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveDeptBtn">Save Department</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/admin.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function activeStaff() {
+      let staff = firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data;
+      return request.auth != null && staff.isActive == true
+        && (!('sourceStaffDocId' in staff)
+            || firestore.get(/databases/(default)/documents/staff/$(staff.sourceStaffDocId)).data.isActive == true);
+    }
+
+    function canUploadReport() {
+      let identity = firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data;
+      let staff = 'sourceStaffDocId' in identity
+        ? firestore.get(/databases/(default)/documents/staff/$(identity.sourceStaffDocId)).data
+        : identity;
+      return activeStaff()
+        && staff.role in ['admin', 'doctor', 'nurse', 'lab_technician'];
+    }
+
+    match /reports/{allPaths=**} {
+      allow read: if activeStaff();
+      allow write: if canUploadReport()
+                   && request.resource.size < 20 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf') || request.resource.contentType.matches('image/.*'));
+    }
+
+    match /imaging/{allPaths=**} {
+      allow read: if activeStaff();
+      allow write: if canUploadReport()
+                   && request.resource.size < 20 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf') || request.resource.contentType.matches('image/.*'));
+    }
+
+  }
+}

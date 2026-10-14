@@ -1,0 +1,35 @@
+{
+  "name": "jyothsna-maternity-hms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jyothsna Maternity Hospital real-time management app",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "check": "node scripts/check.cjs",
+    "test": "node --test tests/*.test.cjs tests/*.test.js functions/test/backend.test.cjs",
+    "test:rules": "node scripts/rules-test.cjs",
+    "start": "node scripts/dev.cjs",
+    "dev": "node scripts/dev.cjs",
+    "seed": "node scripts/seed.cjs",
+    "setup:java": "node scripts/setup-java.cjs",
+    "test:e2e": "node scripts/e2e.cjs",
+    "test:images": "node scripts/image-changes-e2e.cjs",
+    "package:vercel": "node scripts/package-vercel.cjs",
+    "deploy": "npm run check && npm test && npm run build && node scripts/deploy.cjs",
+    "package:handover": "node scripts/package-handover.cjs",
+    "docs:word": "node scripts/docs-to-word.cjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "acorn": "^8.19.0",
+    "firebase-tools": "^15.33.0",
+    "playwright": "^1.63.0"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1",
+    "firebase-admin": "^12.7.0"
+  }
+}

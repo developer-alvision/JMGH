@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality & Audit — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar"><div class="sidebar-header">Jyothsna</div><nav class="sidebar-nav" id="sidebarNav"></nav></aside>
+    <main class="main-wrapper">
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;"><i class="fa-solid fa-bars"></i></button>
+            <div class="nav-title"><h2 data-i18n="Quality & Audit">Quality & Audit</h2></div>
+            <div class="nav-user"><span class="user-info" id="userEmail">Loading...</span><button id="logoutBtn" class="btn-logout">Logout</button></div>
+        </header>
+        <div class="page-content">
+            <div class="toolbar" style="margin-bottom:16px;">
+                <button class="filter-btn active" data-qtab="incidents">Incidents</button>
+                <button class="filter-btn" data-qtab="consents">Consents</button>
+                <button class="filter-btn" data-qtab="audits">NABH checklists</button>
+            </div>
+
+            <section id="qtab-incidents">
+                <div class="toolbar" style="margin-bottom:12px;"><button class="btn-primary" type="button" id="qiAdd">Log incident</button></div>
+                <div class="card"><div class="table-responsive"><table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Patient</th><th>Severity</th><th>Status</th><th>Summary</th></tr></thead>
+                    <tbody id="qiBody"></tbody>
+                </table></div></div>
+            </section>
+
+            <section id="qtab-consents" style="display:none;">
+                <div class="toolbar" style="margin-bottom:12px;"><button class="btn-primary" type="button" id="qcAdd">Record consent</button></div>
+                <div class="card"><div class="table-responsive"><table>
+                    <thead><tr><th>Date</th><th>Patient</th><th>Consent type</th><th>Witness</th><th>Notes</th></tr></thead>
+                    <tbody id="qcBody"></tbody>
+                </table></div></div>
+            </section>
+
+            <section id="qtab-audits" style="display:none;">
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                        <h3 class="card-title">Daily quality checklist</h3>
+                        <button class="btn-primary" type="button" id="qaSave">Save today's audit</button>
+                    </div>
+                    <div class="modal-body" id="qaList"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div id="qiModal" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header"><h3>Log incident</h3><button class="close-btn" type="button" onclick="document.getElementById('qiModal').classList.remove('active')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="qiForm" class="modal-body">
+            <div class="form-group" style="position:relative;">
+                <label>Search patient (optional)</label>
+                <input id="qiPatientSearch" autocomplete="off" placeholder="Name, phone or ID…">
+                <div id="qiPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:200px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+            </div>
+            <div class="form-group"><label>Patient ID</label><input id="qiPatientId"></div>
+            <div class="form-group"><label>Type</label><input id="qiType" required placeholder="Fall, Delay, Near miss…"></div>
+            <div class="form-group"><label>Severity</label>
+                <select id="qiSeverity"><option>low</option><option selected>medium</option><option>high</option><option>sentinel</option></select>
+            </div>
+            <div class="form-group"><label>Summary</label><textarea id="qiSummary" required></textarea></div>
+            <div class="modal-footer"><button class="btn-primary" type="submit">Save</button></div>
+        </form>
+    </div>
+</div>
+<div id="qcModal" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header"><h3>Record consent</h3><button class="close-btn" type="button" onclick="document.getElementById('qcModal').classList.remove('active')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="qcForm" class="modal-body">
+            <div class="form-group" style="position:relative;">
+                <label>Search patient</label>
+                <input id="qcPatientSearch" autocomplete="off" placeholder="Name, phone or ID…" required>
+                <div id="qcPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:200px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+            </div>
+            <div class="form-group"><label>Patient ID</label><input id="qcPatientId" required></div>
+            <div class="form-group"><label>Patient name</label><input id="qcPatientName" required></div>
+            <div class="form-group"><label>Consent type</label>
+                <select id="qcType">
+                    <option>Surgery</option><option>LSCS</option><option>Anaesthesia</option><option>Blood</option><option>High-risk</option><option>Delivery</option><option>Other</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Witness</label><input id="qcWitness"></div>
+            <div class="form-group"><label>Notes</label><textarea id="qcNotes"></textarea></div>
+            <div class="modal-footer"><button class="btn-primary" type="submit">Save</button></div>
+        </form>
+    </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/branch.js?v=20261013b"></script>
+<script src="js/i18n.js?v=20261013b"></script>
+<script src="js/quality.js?v=20261013b"></script>
+</body>
+</html>

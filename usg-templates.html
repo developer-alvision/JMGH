@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USG Templates — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar"><div class="sidebar-header">Jyothsna</div><nav class="sidebar-nav" id="sidebarNav"></nav></aside>
+    <main class="main-wrapper">
+        <header class="navbar">
+            <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;"><i class="fa-solid fa-bars"></i></button>
+            <div class="nav-title"><h2 data-i18n="USG Templates">USG Templates</h2></div>
+            <div class="nav-user"><span class="user-info" id="userEmail">Loading...</span><button id="logoutBtn" class="btn-logout">Logout</button></div>
+        </header>
+        <div class="page-content">
+            <div class="form-grid" style="align-items:start;">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Template</h3></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label>Study type</label>
+                            <select id="usgType">
+                                <option value="obstetric">Obstetric dating / growth</option>
+                                <option value="anomaly">Anomaly scan</option>
+                                <option value="nt">NT / first trimester</option>
+                                <option value="pelvis">Pelvis</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="position:relative;">
+                            <label>Search patient</label>
+                            <input id="usgPatientSearch" placeholder="Name, phone or ID…" autocomplete="off" style="width:100%;">
+                            <div id="usgPatientSearchResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:40;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:220px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.08);"></div>
+                        </div>
+                        <div class="form-group"><label>Patient ID</label><input id="usgPatientId"></div>
+                        <div class="form-group"><label>Patient name</label><input id="usgPatientName"></div>
+                        <div class="form-group"><label>LMP / GA</label><input id="usgGa" placeholder="e.g. 28w 3d"></div>
+                        <div class="form-group"><label>Indication</label><input id="usgIndication"></div>
+                        <button class="btn-secondary" type="button" id="usgFillBtn">Fill template text</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;"><h3 class="card-title">Report</h3>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn-secondary" type="button" id="usgSaveBtn">Save to patient</button>
+                            <button class="btn-primary" type="button" id="usgPdfBtn">PDF</button>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <textarea id="usgBody" rows="22" style="width:100%;font-family:ui-monospace,monospace;font-size:13px;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/hospital-policy.js?v=20261013b"></script>
+<script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+<script src="js/branch.js?v=20261013b"></script>
+<script src="js/i18n.js?v=20261013b"></script>
+<script src="js/usg-templates.js?v=20261013b"></script>
+</body>
+</html>

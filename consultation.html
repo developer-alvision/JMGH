@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation notes — Jyothsna Maternity Hospital</title>
+    <link rel="stylesheet" href="css/style.css?v=20261013b">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jspdf.umd.min.js?v=20261013b"></script>
+    <script src="js/jspdf.plugin.autotable.min.js?v=20261013b"></script>
+    <style>
+        /* Modern clinical consult layout overrides */
+        .consult-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        @media(max-width: 1024px) {
+            .consult-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .patient-compact-bar {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 24px;
+            border-left: 5px solid var(--primary-teal);
+        }
+        
+        .compact-info-grid {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 0.95rem;
+        }
+
+        .compact-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .compact-val {
+            font-weight: 600;
+            color: var(--primary-navy);
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            color: var(--primary-navy);
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .test-item:hover {
+            border-color: var(--primary-teal);
+        }
+        
+        .test-item label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 550;
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .amount-input {
+            width: 80px;
+            padding: 4px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-align: right;
+            outline: none;
+            height: 28px;
+            display: none; /* hidden until checked */
+        }
+        
+        /* Prescription UI table */
+        .rx-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .rx-table th {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding: 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .rx-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            position: relative;
+        }
+        
+        .rx-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .rx-input:focus {
+            border-color: var(--primary-teal);
+        }
+
+        /* Autocomplete dropdown for prescription drugs */
+        .drug-suggestions {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--border-color);
+            width: calc(100% - 12px);
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            display: none;
+            top: 42px;
+            left: 6px;
+        }
+        .drug-suggestion-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .drug-suggestion-item:hover {
+            background: #f8fafc;
+        }
+
+        /* Sidebar historical consultations styles */
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-navy);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.01);
+        }
+        .history-date {
+            font-size: 0.75rem;
+            color: var(--primary-teal);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .history-field {
+            font-size: 0.8rem;
+            margin-bottom: 6px;
+        }
+        .history-field label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        /* Treatment Templates Panel Styles */
+        .findings-template-split {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            align-items: stretch;
+        }
+        @media (max-width: 960px) {
+            .findings-template-split {
+                grid-template-columns: 1fr;
+            }
+        }
+        .tpl-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .tpl-card:hover {
+            border-color: var(--primary-teal);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transform: translateY(-1px);
+        }
+        .tpl-card.active {
+            border-color: var(--primary-teal);
+            background: #f0fdf4;
+        }
+        .tpl-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        .tpl-chip {
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .tpl-chip:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+        .field-flash {
+            animation: highlightFade 1.2s ease;
+        }
+        @keyframes highlightFade {
+            0% { background-color: #ecfdf5; border-color: #10b981; }
+            100% { background-color: white; }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#A61E4D">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital-user"></i> Jyothsna
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <main class="main-wrapper">
+            <!-- Navbar -->
+            <header class="navbar">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" style="display:none;background:none;border:none;color:var(--primary-navy);font-size:20px;cursor:pointer;padding:0 10px;margin-right:10px;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="nav-title"><h2>Clinical Consultation</h2></div>
+                <div class="nav-user">
+                    <span class="user-info" id="userEmail">Loading...</span>
+                    <button id="logoutBtn" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                
+                <!-- PATIENT COMPACT INFO BAR (TOP) -->
+                <div class="patient-compact-bar">
+                    <div class="compact-info-grid">
+                        <div>
+                            <span class="compact-label">PATIENT NAME</span>
+                            <span class="compact-val" id="barName">Loading...</span>
+                        </div>
+                        <div>
+                            <span class="compact-label">PATIENT ID</span>
+                            <span class="compact-val" id="barId">—</span>
+                        </div>
+                        <div>
+                            <span class="compact-label">AGE / GENDER</span>
+                            <span class="compact-val" id="barAgeGender">—</span>
+                        </div>
+                        <div>
+                            <span class="compact-label">BLOOD GROUP</span>
+                            <span class="compact-val" id="barBlood">—</span>
+                        </div>
+                        <div>
+                            <span class="compact-label">DEPARTMENT</span>
+                            <span class="compact-val" id="barDept">—</span>
+                        </div>
+                        <div>
+                            <span class="compact-label">ASSIGNED DOCTOR</span>
+                            <span class="compact-val" id="barDoctor">—</span>
+                        </div>
+                    </div>
+                    <a href="#" id="lnkViewProfile" target="_blank" class="btn-action-sm btn-secondary" style="height:34px; padding:0 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-user-circle"></i> View Full Profile</a>
+                </div>
+
+                <!-- CLINICAL WORKSPACE SPLIT WRAPPER -->
+                <div class="consult-wrapper">
+                    
+                    <!-- LEFT COLUMN: Consultation Note Editor -->
+                    <div class="editor-column">
+                        <form id="consultationForm">
+
+                            <!-- SECTION 1: Patient Vitals -->
+                            <div class="section-card">
+                                <h3 class="section-title"><i class="fa-solid fa-heart-pulse" style="color:var(--primary-teal);"></i> Patient Vitals</h3>
+                                <div class="vitals-grid">
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">BP (Systolic/Diastolic)</label>
+                                        <input type="text" id="vitalBP" placeholder="e.g. 120/80" class="rx-input" style="height:36px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">Pulse (bpm)</label>
+                                        <input type="number" id="vitalPulse" placeholder="e.g. 72" class="rx-input" style="height:36px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">Temp (°F)</label>
+                                        <input type="number" step="0.1" id="vitalTemp" placeholder="e.g. 98.6" class="rx-input" style="height:36px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">Weight (kg)</label>
+                                        <input type="number" id="vitalWeight" placeholder="e.g. 70" class="rx-input" style="height:36px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">Height (cm)</label>
+                                        <input type="number" id="vitalHeight" placeholder="e.g. 175" class="rx-input" style="height:36px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.8rem; margin-bottom:4px;">SpO2 (%)</label>
+                                        <input type="number" id="vitalSpO2" placeholder="e.g. 98" class="rx-input" style="height:36px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 2: Subjective and Objective Clinical Notes with Treatment Templates -->
+                            <div class="section-card">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap:wrap; gap:10px;">
+                                    <h3 style="font-size: 1.05rem; color: var(--primary-navy); font-weight: 600; margin:0; display:flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-file-signature" style="color:var(--primary-teal);"></i> Clinical Findings & Advice
+                                    </h3>
+                                    <!-- Quick Code Shortcut Finder -->
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <label for="templateCodeInput" style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin:0; cursor:pointer;" title="Type a code like FEV for Fever and press Enter">
+                                            <i class="fa-solid fa-bolt" style="color:#d97706;"></i> Quick Code:
+                                        </label>
+                                        <input type="text" id="templateCodeInput" placeholder="e.g. FEV, ANC1" style="text-transform:uppercase; width:115px; height:32px; font-size:0.82rem; font-weight:700; padding:4px 8px; border:1px solid var(--border-color); border-radius:4px; letter-spacing:0.5px;" title="Type shortcut code (e.g. FEV for Fever) and press Enter">
+                                        <button type="button" id="btnApplyCode" class="btn-primary" style="height:32px; padding:0 12px; font-size:0.78rem; font-weight:600;">
+                                            <i class="fa-solid fa-arrow-turn-down"></i> Apply
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Split Layout: Left Treatment Templates, Right Findings & Notes -->
+                                <div class="findings-template-split">
+                                    
+                                    <!-- LEFT: Protocols & Treatment Templates -->
+                                    <div class="treatment-templates-sidebar" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; flex-direction:column; max-height:510px; box-sizing:border-box;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                            <span style="font-size:0.82rem; font-weight:700; color:var(--primary-navy); display:flex; align-items:center; gap:5px;">
+                                                <i class="fa-solid fa-prescription-bottle-medical" style="color:var(--primary-teal);"></i> Templates
+                                            </span>
+                                            <button type="button" id="btnOpenAddTemplateModal" class="btn-action-sm btn-secondary" style="font-size:0.72rem; padding:2px 8px; height:24px; border-radius:4px;" title="Add new custom treatment template">
+                                                <i class="fa-solid fa-plus"></i> Add
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Filter Search -->
+                                        <div style="position:relative; margin-bottom:8px;">
+                                            <input type="text" id="templateSearchInput" placeholder="Filter code or name..." style="width:100%; height:28px; font-size:0.75rem; padding:4px 6px 4px 24px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box;">
+                                            <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:7px; top:8px; font-size:0.7rem; color:#94a3b8;"></i>
+                                        </div>
+                                        
+                                        <!-- Quick Chips -->
+                                        <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                                            <span class="tpl-chip" data-code="FEV" title="Fever / Acute Pyrexia" style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;">FEV</span>
+                                            <span class="tpl-chip" data-code="ANC1" title="1st Trimester ANC" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">ANC1</span>
+                                            <span class="tpl-chip" data-code="ANC2" title="Routine ANC 2nd/3rd Tri" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe;">ANC2</span>
+                                            <span class="tpl-chip" data-code="PIH" title="Gestational HTN" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">PIH</span>
+                                            <span class="tpl-chip" data-code="UTI" title="UTI in Pregnancy" style="background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe;">UTI</span>
+                                            <span class="tpl-chip" data-code="APD" title="Acidity & Gastritis" style="background:#f3f4f6; color:#374151; border:1px solid #e5e7eb;">APD</span>
+                                        </div>
+
+                                        <!-- Templates Cards List -->
+                                        <div id="templatesListContainer" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:2px;">
+                                            <!-- Dynamically populated via JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- RIGHT: Findings, HPI, Diagnosis, Advice -->
+                                    <div class="form-grid" style="margin-bottom:0;">
+                                        <div class="form-group full-width" style="margin-bottom:8px;">
+                                            <label>Chief Complaint <span style="color:var(--error-color)">*</span></label>
+                                            <textarea id="chiefComplaint" required class="rx-input" style="height:65px; padding:8px 10px; resize:none;" placeholder="Describe symptoms or reasons for the visit..."></textarea>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:8px;">
+                                            <label>History of Present Illness (HPI)</label>
+                                            <textarea id="historyIllness" class="rx-input" style="height:75px; padding:8px 10px; resize:none;" placeholder="HPI details..."></textarea>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:8px;">
+                                            <label>Examination Findings</label>
+                                            <textarea id="examinationFindings" class="rx-input" style="height:75px; padding:8px 10px; resize:none;" placeholder="Objective physical exam details..."></textarea>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:8px;">
+                                            <label>Diagnosis <span style="color:var(--error-color)">*</span> <span style="color:var(--text-muted); font-size:0.8rem; font-weight:normal">(ICD Code Optional)</span></label>
+                                            <textarea id="diagnosis" required class="rx-input" style="height:65px; padding:8px 10px; resize:none;" placeholder="Provide primary clinical diagnosis..."></textarea>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:8px;">
+                                            <label>Advice / Instructions</label>
+                                            <textarea id="advice" class="rx-input" style="height:65px; padding:8px 10px; resize:none;" placeholder="General instructions for patient care, diet, etc..."></textarea>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: Lab Test Orders -->
+                            <div class="section-card">
+                                <h3 class="section-title"><i class="fa-solid fa-flask" style="color:var(--primary-teal);"></i> Order Lab Tests</h3>
+                                <div class="test-grid" id="labTestsGrid">
+                                    <!-- Populated dynamically via consultation.js -->
+                                </div>
+                            </div>
+
+                            <!-- SECTION 4: Imaging Orders -->
+                            <div class="section-card">
+                                <h3 class="section-title"><i class="fa-solid fa-x-ray" style="color:var(--primary-teal);"></i> Order Imaging Scans</h3>
+                                <div class="test-grid" id="imagingTestsGrid">
+                                    <!-- Populated dynamically via consultation.js -->
+                                </div>
+                            </div>
+
+                            <!-- SECTION 5: Prescription Builder -->
+                            <div class="section-card">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                                    <h3 style="font-size: 1.05rem; color: var(--primary-navy); font-weight: 600; margin:0; display:flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-prescription" style="color:var(--primary-teal);"></i> Prescription Medicines
+                                    </h3>
+                                    <button type="button" id="btnAddMedRow" class="btn-primary" style="padding:6px 12px; font-size:0.8rem;"><i class="fa-solid fa-plus"></i> Add Medicine</button>
+                                </div>
+                                <div id="drugSafetyBanner" style="display:none;"></div>
+                                <div class="table-responsive">
+                                    <table class="rx-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="text-align:left; width:35%;">Medicine Name</th>
+                                                <th style="text-align:left; width:15%;">Dosage</th>
+                                                <th style="text-align:left; width:20%;">Frequency</th>
+                                                <th style="text-align:left; width:12%;">Duration</th>
+                                                <th style="text-align:left; width:18%;">Instructions</th>
+                                                <th style="width:50px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="prescriptionTableBody">
+                                            <!-- Dynamically appended rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 6: Follow-up Scheduling -->
+                            <div class="section-card">
+                                <h3 class="section-title"><i class="fa-solid fa-calendar-days" style="color:var(--primary-teal);"></i> Follow-up Scheduling</h3>
+                                <div style="display:grid; grid-template-columns:180px 1fr; gap:20px; align-items:flex-start;">
+                                    <div style="display:flex; flex-direction:column; gap:10px;">
+                                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:550; font-size:0.9rem; color:var(--primary-navy);">
+                                            <input type="checkbox" id="followUpRequired" style="width:18px; height:18px;"> Follow-up Required
+                                        </label>
+                                        <div id="followUpDateGroup" style="display:none; flex-direction:column; gap:4px;">
+                                            <label style="font-size:0.8rem; font-weight:600; color:#555;">Follow-up Date</label>
+                                            <input type="date" id="followUpDate" class="rx-input" style="height:36px;">
+                                        </div>
+                                    </div>
+                                    <div id="followUpNotesGroup" style="display:none; flex-direction:column; gap:4px;">
+                                        <label style="font-size:0.8rem; font-weight:600; color:#555;">Follow-up Instructions</label>
+                                        <textarea id="followUpNotes" class="rx-input" style="height:60px; padding:8px; resize:none;" placeholder="Notes or targets for follow-up visit..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 7: Save & Action Bar -->
+                            <div style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:40px; flex-wrap:wrap;">
+                                <button type="button" class="btn-primary" id="btnPrintCurrentConsult" style="height:44px; padding:0 20px; font-weight:600; background:#0D7A70; border-color:#0D7A70;"><i class="fa-solid fa-file-prescription"></i> Print OP Bill / Rx (Bilingual)</button>
+                                <button type="button" class="btn-secondary" id="btnSaveDraft" style="height:44px; padding:0 24px; font-weight:600;"><i class="fa-solid fa-floppy-disk"></i> Save Draft</button>
+                                <label style="font-size:13px;"><input type="checkbox" id="consultationPhoneOP"> Phone OP (+₹100; applies when not invoiced at booking)</label>
+                                <button type="submit" class="btn-primary" id="btnCompleteConsult" style="height:44px; padding:0 28px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Complete Consultation</button>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Collapsible Sidebar for History Collateral -->
+                    <aside class="history-sidebar" id="historySidebar">
+                        <div class="section-card" style="padding:15px; border-left:4px solid var(--primary-navy);">
+                            <h3 class="sidebar-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary-teal);"></i> Patient History</h3>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Last 3 consultations recorded in system.</p>
+                            <div id="previousConsultsContainer">
+                                <div style="font-size:0.8rem; color:#888; text-align:center; padding:20px;">No previous consultations recorded.</div>
+                            </div>
+                        </div>
+                    </aside>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Custom Clinical Template Modal -->
+    <div id="addTemplateModal" class="modal" style="display:none; position:fixed; z-index:1100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(15,23,42,0.6); align-items:center; justify-content:center;">
+        <div class="modal-content" style="background:#fff; border-radius:10px; max-width:700px; width:92%; box-shadow:0 10px 25px rgba(0,0,0,0.2); overflow:hidden; margin: auto;">
+            <div class="modal-header" style="background:#0F2B5B; color:white; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color:white; margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-file-circle-plus" style="color:var(--primary-teal);"></i> Add Clinical Treatment Template
+                </h3>
+                <button type="button" id="closeAddTemplateModalBtn" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer; opacity:0.85;">✕</button>
+            </div>
+            <form id="addTemplateForm" style="padding:20px;">
+                <div style="display:grid; grid-template-columns:140px 1fr 160px; gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">SHORTCUT CODE *</label>
+                        <input type="text" id="tplNewCode" placeholder="e.g. FEV" required maxlength="8" style="text-transform:uppercase; width:100%; height:36px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; font-size:0.85rem; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">TEMPLATE NAME *</label>
+                        <input type="text" id="tplNewName" placeholder="e.g. Acute Fever / Pyrexia" required style="width:100%; height:36px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">CATEGORY</label>
+                        <select id="tplNewCategory" style="width:100%; height:36px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; padding:0 8px; box-sizing:border-box;">
+                            <option value="General">General</option>
+                            <option value="Obstetrics">Obstetrics</option>
+                            <option value="Gynecology">Gynecology</option>
+                            <option value="Pediatrics">Pediatrics</option>
+                            <option value="Infections">Infections</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">PRIMARY DIAGNOSIS *</label>
+                    <input type="text" id="tplNewDiagnosis" placeholder="e.g. Acute Pyrexia of Unknown Origin" required style="width:100%; height:36px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">EXAMINATION FINDINGS TEMPLATE</label>
+                    <textarea id="tplNewFindings" style="width:100%; height:55px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; resize:none; box-sizing:border-box;" placeholder="e.g. Febrile, Temp 101F, throat congestion, chest clear..."></textarea>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.75rem; font-weight:700; color:#475569; display:block; margin-bottom:4px;">ADVICE / INSTRUCTIONS (BILINGUAL)</label>
+                    <textarea id="tplNewAdvice" style="width:100%; height:65px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem; resize:none; box-sizing:border-box;" placeholder="1. Rest & plenty of hydration (నీరు ఎక్కువగా తాగాలి)..."></textarea>
+                </div>
+
+                <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:0.8rem; font-weight:700; color:#334155;"><i class="fa-solid fa-pills" style="color:var(--primary-teal);"></i> Associated Medicines (Auto-filled into Rx)</span>
+                        <button type="button" id="btnAddTplMedRow" class="btn-action-sm btn-secondary" style="font-size:0.75rem; height:26px; padding:0 8px;"><i class="fa-solid fa-plus"></i> Add Medicine</button>
+                    </div>
+                    <div style="max-height:130px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; background:#f8fafc;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                            <thead>
+                                <tr style="background:#f1f5f9; text-align:left; color:#64748b;">
+                                    <th style="padding:6px 8px;">Medicine</th>
+                                    <th style="padding:6px 8px; width:70px;">Dosage</th>
+                                    <th style="padding:6px 8px; width:120px;">Frequency</th>
+                                    <th style="padding:6px 8px; width:60px;">Duration</th>
+                                    <th style="padding:6px 8px; width:30px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tplMedTableBody">
+                                <!-- Medicine rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" id="btnCancelAddTemplate" class="btn-secondary" style="height:36px; padding:0 16px; font-size:0.85rem;">Cancel</button>
+                    <button type="submit" class="btn-primary" style="height:36px; padding:0 20px; font-size:0.85rem; font-weight:600;"><i class="fa-solid fa-save"></i> Save Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/hospital-policy.js?v=20261013b"></script>
+    <script src="js/firebase-config.js?v=20261013b"></script>
+<script src="js/helpers.js?v=20261013b"></script>
+    <script src="js/hospital-forms.js?v=20261013b"></script>
+    <script src="js/drug-safety.js?v=20261013b"></script>
+    <script src="js/consultation.js?v=20261013b"></script>
+</body>
+</html>
+
+
+
+
+
