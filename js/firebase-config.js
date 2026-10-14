@@ -19,12 +19,13 @@
  * ignores it and uses the Firebase emulators instead.
  */
 window.FIREBASE_CONFIG = {
-    apiKey: '',
-    authDomain: '',          // <project-id>.firebaseapp.com
-    projectId: '',
-    storageBucket: '',       // <project-id>.firebasestorage.app
-    messagingSenderId: '',
-    appId: ''
+    apiKey: 'AIzaSyCg4aGK9iyawXRj4UFwjyED-uCb6_vV-_A',
+    authDomain: 'jmgh-9dbf9.firebaseapp.com',
+    projectId: 'jmgh-9dbf9',
+    storageBucket: 'jmgh-9dbf9.firebasestorage.app',
+    messagingSenderId: '800704990080',
+    appId: '1:800704990080:web:30cc50b9e0a6cff8068f65',
+    measurementId: 'G-PFTT5X7DKS'
 };
 
 /* Cloud Functions region. Change only if you deploy functions elsewhere. */
